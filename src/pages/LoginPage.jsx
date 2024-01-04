@@ -1,5 +1,5 @@
-// import Login from "../miscellaneous/Login";
-import SignUp from "../miscellaneous/SignUp";
+// import { Login } from "../components";
+import { SignUp } from "../components";
 
 const LoginPage = () => {
   return (
@@ -7,7 +7,7 @@ const LoginPage = () => {
       <div className="w-[50%] flex items-center justify-center p-10">
         Quill Image
       </div>
-      <div className="w-[50%] p-10 h-[100%]">
+      <div className="w-[50%] bg-teal-700 flex justify-center items-center p-10">
         {/* <Login /> */}
         <SignUp />
       </div>

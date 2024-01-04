@@ -1,4 +1,4 @@
-import BlogCard2 from "../miscellaneous/BlogCard2";
+import { BlogCard2 } from "../components/index";
 
 const HomePage = () => {
   return (

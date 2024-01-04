@@ -1,5 +1,6 @@
 // import BlogPage from "./BlogPage";
 // import HomePage from "./HomePage";
+// import AddBlogPage from "./AddBlogPage";
 import LoginPage from "./LoginPage";
 
 const MainPage = () => {
@@ -8,6 +9,7 @@ const MainPage = () => {
       <LoginPage />
       {/* <BlogPage /> */}
       {/* <HomePage /> */}
+      {/* <AddBlogPage /> */}
     </div>
   );
 };
