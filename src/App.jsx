@@ -1,12 +1,14 @@
 import "./App.css";
 import { Header, Footer } from "./components/index";
-import MainPage from "./pages/MainPage";
+import { Outlet } from "react-router-dom";
 
 function App() {
   return (
-    <div className="w-full h-screen bg-slate-600">
+    <div className="w-full min-h-[80vh] bg-slate-600">
       <Header />
-      <MainPage />
+      <div className="w-full min-h-[80vh] bg-green-600 flex flex-col items-center justify-center">
+        <Outlet />
+      </div>
       <Footer />
     </div>
   );

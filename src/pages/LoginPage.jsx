@@ -1,5 +1,4 @@
-// import { Login } from "../components";
-import { SignUp } from "../components";
+import { Outlet } from "react-router-dom";
 
 const LoginPage = () => {
   return (
@@ -8,8 +7,7 @@ const LoginPage = () => {
         Quill Image
       </div>
       <div className="w-[50%] bg-teal-700 flex justify-center items-center p-10">
-        {/* <Login /> */}
-        <SignUp />
+        <Outlet />
       </div>
     </div>
   );
