@@ -1,4 +1,4 @@
-import { BlogCard2 } from "../components/index";
+// import { BlogCard } from "../components/index";
 
 const HomePage = () => {
   return (
@@ -15,14 +15,14 @@ const HomePage = () => {
         </p>
         <p>Technology: The latest trends in tech, industry news, and more.</p>
       </div>
-      <div className="w-[80%] bg-blue-500 mt-10 rounded-3xl flex flex-col items-center p-5 m-10">
+      {/* <div className="w-[80%] bg-blue-500 mt-10 rounded-3xl flex flex-col items-center p-5 m-10">
         <h1 className="text-3xl">Recent Blogs</h1>
-        <div className="w-full flex flex-col items-center justify-center gap-5 mt-8">
-          <BlogCard2 />
-          <BlogCard2 />
-          <BlogCard2 />
+        <div className="w-full flex flex-row justify-center gap-5 mt-8">
+          <BlogCard />
+          <BlogCard />
+          <BlogCard />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
