@@ -1,8 +1,9 @@
 import { Editor } from "@tinymce/tinymce-react";
 import config from "../config/config";
 import { useState, useCallback, useEffect } from "react";
+import PropTypes from "prop-types";
 
-const AddBlogPage = (post) => {
+const AddBlogPage = ({ post }) => {
   const [title, setTitle] = useState(post?.title, "");
   const [slug, setSlug] = useState(post?.slug, "");
   const [content, setContent] = useState(post?.content, "");
@@ -102,6 +103,14 @@ const AddBlogPage = (post) => {
       </div>
     </div>
   );
+};
+
+AddBlogPage.propTypes = {
+  post: PropTypes.shape({
+    title: PropTypes.string,
+    slug: PropTypes.string,
+    content: PropTypes.string,
+  }),
 };
 
 export default AddBlogPage;

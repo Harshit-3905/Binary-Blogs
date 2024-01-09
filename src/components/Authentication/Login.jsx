@@ -2,20 +2,30 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import authService from "../../appwrite/auth";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { login } from "../../store/authSlice";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const LoginHandler = (e) => {
+  const dispatch = useDispatch();
+  const LoginHandler = async (e) => {
     e.preventDefault();
-    const data = { email, password };
-    authService
-      .login(data)
-      .then(() => {
+    const data = {
+      email,
+      password,
+    };
+    try {
+      const session = await authService.login(data);
+      if (session) {
+        const userData = await authService.getCurrentUser();
+        if (userData) dispatch(login(userData));
         navigate("/");
-      })
-      .catch((err) => console.log(err));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
   return (
     <div className="h-full w-full flex flex-col items-center justify-center bg-blue-400">

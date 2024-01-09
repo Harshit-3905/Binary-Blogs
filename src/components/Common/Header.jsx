@@ -1,23 +1,19 @@
-import { useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import authService from "../../appwrite/auth";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { logout } from "../../store/authSlice";
 
 const Header = () => {
   const navigate = useNavigate();
-  const [isLoggedin, setIsLoggedin] = useState(false);
+  const dispatch = useDispatch();
+  const authStatus = useSelector((state) => state.auth.status);
   const LogoutHandler = () => {
     authService.logout();
-    setIsLoggedin(false);
+    dispatch(logout());
     navigate("/");
   };
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user) {
-      setIsLoggedin(true);
-    }
-  }, []);
   const NavItems = [
     {
       name: "Home",
@@ -52,7 +48,7 @@ const Header = () => {
           ))}
         </ul>
       </div>
-      {isLoggedin ? (
+      {authStatus ? (
         <button
           className="h-12 w-32 bg-red-600 p-3 rounded-xl"
           onClick={LogoutHandler}

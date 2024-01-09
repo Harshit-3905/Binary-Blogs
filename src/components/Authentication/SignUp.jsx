@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../appwrite/auth";
+import { useDispatch } from "react-redux";
+import { login } from "../../store/authSlice";
 
 const SignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPasswrod] = useState("");
   const navigate = useNavigate();
-  const RegisterHandler = (e) => {
+  const dispatch = useDispatch();
+  const RegisterHandler = async (e) => {
     const data = { email, password, name };
     e.preventDefault();
-    authService
-      .createAccount(data)
-      .then((res) => {
-        console.log(res);
+    try {
+      const session = await authService.createAccount(data);
+      if (session) {
+        const userData = await authService.getCurrentUser();
+        if (userData) dispatch(login(userData));
         navigate("/");
-      })
-      .catch((err) => console.log(err));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
   return (
     <div className="h-full w-full flex flex-col items-center justify-center bg-blue-400">
