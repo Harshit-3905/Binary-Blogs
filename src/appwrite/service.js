@@ -80,7 +80,7 @@ class Service {
     }
   }
 
-  async getPosts(queries = [Query.equal("status", "active")]) {
+  async getBlogs(queries = [Query.equal("status", "public")]) {
     try {
       const posts = await this.database.listDocuments(
         config.appwriteDatabaseID,
@@ -98,7 +98,7 @@ class Service {
     try {
       const response = await this.storage.createFile(
         config.appwriteBucketID,
-        ID.unique,
+        ID.unique(),
         file
       );
       return response;
