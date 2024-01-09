@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import authService from "../../appwrite/auth";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
   const LoginHandler = (e) => {
     e.preventDefault();
     const data = { email, password };
     authService
       .login(data)
-      .then((res) => {
-        console.log(res);
+      .then(() => {
+        navigate("/");
       })
       .catch((err) => console.log(err));
   };

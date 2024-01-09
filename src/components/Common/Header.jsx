@@ -1,6 +1,23 @@
+import { useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
+import authService from "../../appwrite/auth";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const Header = () => {
+  const navigate = useNavigate();
+  const [isLoggedin, setIsLoggedin] = useState(false);
+  const LogoutHandler = () => {
+    authService.logout();
+    setIsLoggedin(false);
+    navigate("/");
+  };
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    if (user) {
+      setIsLoggedin(true);
+    }
+  }, []);
   const NavItems = [
     {
       name: "Home",
@@ -35,11 +52,20 @@ const Header = () => {
           ))}
         </ul>
       </div>
-      <Link to="/auth/login">
-        <button className="h-12 w-32 bg-red-600 p-3 rounded-xl">
-          Login/SignUp
+      {isLoggedin ? (
+        <button
+          className="h-12 w-32 bg-red-600 p-3 rounded-xl"
+          onClick={LogoutHandler}
+        >
+          LogOut
         </button>
-      </Link>
+      ) : (
+        <Link to="/auth/login">
+          <button className="h-12 w-32 bg-red-600 p-3 rounded-xl">
+            Login/SignUp
+          </button>
+        </Link>
+      )}
     </div>
   );
 };

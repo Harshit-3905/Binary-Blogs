@@ -29,10 +29,10 @@ class AuthService {
 
   async login({ email, password }) {
     try {
-      const userAccount = await this.account.createEmailSession({
+      const userAccount = await this.account.createEmailSession(
         email,
-        password,
-      });
+        password
+      );
       return userAccount;
     } catch (error) {
       console.error(error);
@@ -43,9 +43,8 @@ class AuthService {
     try {
       return await this.account.get();
     } catch (error) {
-      console.error(error);
+      return null;
     }
-    return null;
   }
 
   async logout() {
