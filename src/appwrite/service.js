@@ -110,7 +110,7 @@ class Service {
 
   async deleteFile(fileID) {
     try {
-      await this.storage.deleteFile(fileID);
+      await this.storage.deleteFile(config.appwriteBucketID, fileID);
       return true;
     } catch (error) {
       console.error(error);

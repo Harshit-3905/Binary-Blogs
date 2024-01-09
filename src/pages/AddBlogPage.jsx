@@ -8,13 +8,13 @@ import { useNavigate } from "react-router-dom";
 
 const AddBlogPage = ({ post }) => {
   const [title, setTitle] = useState(post?.title || "");
-  const [slug, setSlug] = useState(post?.slug || "");
+  const [slug, setSlug] = useState(post?.$id || "");
   const [content, setContent] = useState(post?.content || "");
-  const [image, setImage] = useState(post?.image || null);
+  const [image, setImage] = useState(post?.featuredImage || null);
   const [status, setStatus] = useState(post?.status || "public");
   const userID = useSelector((state) => state.auth.userData);
   const slugTransform = useCallback((slug) => {
-    if (slug) setSlug(slug.toLowerCase().replace(/\s+/g, "-"));
+    if (!post && slug) setSlug(slug.toLowerCase().replace(/\s+/g, "-"));
   }, []);
   const navigate = useNavigate();
   const SubmitHandler = async () => {
@@ -30,7 +30,29 @@ const AddBlogPage = ({ post }) => {
       };
       const blog = await appwriteService.createPost(data);
       if (blog) {
-        navigate("/blog/" + blog.$id);
+        navigate("/blog/" + slug);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const updateHandler = async () => {
+    try {
+      const data = {
+        title,
+        content,
+        status,
+      };
+      if (image !== post.featuredImage) {
+        await appwriteService.deleteFile(post.featuredImage);
+        const fileID = await appwriteService.uploadFile(image);
+        data.featuredImage = fileID.$id;
+      } else {
+        data.featuredImage = post.featuredImage;
+      }
+      const blog = await appwriteService.updatePost(post.$id, data);
+      if (blog) {
+        navigate("/blog/" + slug);
       }
     } catch (err) {
       console.log(err);
@@ -138,7 +160,10 @@ const AddBlogPage = ({ post }) => {
         </div>
         <div className="flex justify-center">
           {post ? (
-            <button className="bg-green-800 text-white rounded-2xl p-2 my-5 w-24 justify-center">
+            <button
+              className="bg-green-800 text-white rounded-2xl p-2 my-5 w-24 justify-center"
+              onClick={updateHandler}
+            >
               Update
             </button>
           ) : (
@@ -159,11 +184,13 @@ const AddBlogPage = ({ post }) => {
 
 AddBlogPage.propTypes = {
   post: PropTypes.shape({
+    $id: PropTypes.string,
     title: PropTypes.string,
     slug: PropTypes.string,
     image: PropTypes.string,
     content: PropTypes.string,
     status: PropTypes.string,
+    featuredImage: PropTypes.string,
   }),
 };
 
