@@ -1,4 +1,4 @@
-import defaultImage from "../../assets/defaultImage.png";
+import defaultImage from "../../assets/defaultimage.png";
 
 const BlogCard = () => {
   return (
