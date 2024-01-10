@@ -51,7 +51,7 @@ const Header = () => {
                   isActive
                     ? "underline underline-offset-4 text-[#03045E]"
                     : "no-underline"
-                } text-xl hover:text-[#03045E]`
+                } text-xl hover:text-[#03045E] font-medium`
               }
             >
               {item.name}

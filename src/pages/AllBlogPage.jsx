@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BlogCard } from "../components";
+import { BlogCardLoading } from "../components";
 import appwriteService from "../appwrite/service";
 import { Link } from "react-router-dom";
 
@@ -9,6 +10,7 @@ const AllBlogPage = () => {
     async function getData() {
       await appwriteService.getBlogs().then((res) => {
         setBlogs(res.documents);
+        console.log(blogs);
       });
     }
     getData();
@@ -18,7 +20,11 @@ const AllBlogPage = () => {
     <div className="w-full h-full flex justify-center">
       <div className="w-[80%] flex flex-wrap justify-center gap-10 p-8">
         {blogs.length === 0 ? (
-          <div>loading...</div>
+          <>
+            <BlogCardLoading />
+            <BlogCardLoading />
+            <BlogCardLoading />
+          </>
         ) : (
           blogs.map((blog) => (
             <Link key={blog.$id} to={`/blog/${blog.$id}`}>
