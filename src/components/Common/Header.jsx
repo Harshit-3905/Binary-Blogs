@@ -30,10 +30,14 @@ const Header = () => {
     },
   ];
   return (
-    <div className="w-full h-[10vh] border-b-4 flex items-center justify-between px-10">
+    <div className="w-full h-[10vh] bg-[#48CAE4] flex items-center justify-between px-10">
       <div className="h-full p-2">
         <Link to="/">
-          <img src={logo} alt="Binary Blogs" className="h-full" />
+          <img
+            src={logo}
+            alt="Binary Blogs"
+            className="h-full bg-transparent"
+          />
         </Link>
       </div>
       <div className="w-[400px]">

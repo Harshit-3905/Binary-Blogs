@@ -4,14 +4,22 @@ import authService from "../../appwrite/auth";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/authSlice";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const LoginHandler = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    if (email === "" || password === "") {
+      setLoading(false);
+      return toast.error("Please Fill All The Fields");
+    }
     const data = {
       email,
       password,
@@ -20,15 +28,26 @@ const Login = () => {
       const session = await authService.login(data);
       if (session) {
         const userData = await authService.getCurrentUser();
-        if (userData) dispatch(login(userData));
-        navigate("/");
+        if (userData) {
+          dispatch(login(userData));
+          toast.success("Login Successful");
+          setLoading(false);
+          navigate("/");
+        }
+      } else {
+        toast.error("Invalid Credentials");
       }
     } catch (error) {
-      console.log(error);
+      if (error.message === "Invalid email or password") {
+        toast.error("Password is incorrect");
+      } else {
+        toast.error(error.message);
+      }
     }
+    setLoading(false);
   };
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-blue-400">
+    <div className="h-full w-full flex flex-col items-center justify-center">
       <form className="flex flex-col w-[70%] text-xl ">
         <label htmlFor="email" className="mt-5">
           Email :
@@ -56,11 +75,12 @@ const Login = () => {
         />
         <div className="flex justify-center">
           <button
-            className="p-2 mt-5 bg-green-700 w-[100px] rounded-3xl "
+            className="p-2 mt-5 bg-green-500 w-[100px] rounded-3xl text-white"
             type="submit"
             onClick={LoginHandler}
+            disabled={loading}
           >
-            Login
+            {loading ? "Loading" : "Login"}
           </button>
         </div>
       </form>
@@ -70,6 +90,18 @@ const Login = () => {
           SignUp
         </Link>
       </p>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable
+        pauseOnHover={false}
+        theme="light"
+      />
     </div>
   );
 };

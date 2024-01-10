@@ -4,9 +4,9 @@ import { Outlet } from "react-router-dom";
 
 function App() {
   return (
-    <div className="w-full min-h-[80vh] bg-slate-600">
+    <div className="w-full min-h-[80vh]">
       <Header />
-      <div className="w-full min-h-[80vh] bg-green-600 flex flex-col items-center justify-center">
+      <div className="w-full min-h-[80vh] flex flex-col items-center justify-center bg-[#ADE8F4]">
         <Outlet />
       </div>
       <Footer />

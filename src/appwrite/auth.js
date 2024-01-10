@@ -35,7 +35,7 @@ class AuthService {
       );
       return userAccount;
     } catch (error) {
-      console.error(error);
+      return null;
     }
   }
 

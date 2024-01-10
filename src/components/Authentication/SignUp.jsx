@@ -25,7 +25,7 @@ const SignUp = () => {
     }
   };
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-blue-400">
+    <div className="h-full w-full flex flex-col items-center justify-center">
       <form className="flex flex-col w-[70%] text-xl">
         <label htmlFor="name" className="mt-5 pl-1">
           Enter Full Name :
@@ -65,7 +65,7 @@ const SignUp = () => {
         />
         <div className="flex justify-center">
           <button
-            className="p-2 mt-5 bg-green-700 w-[100px] rounded-3xl "
+            className="p-2 mt-5 bg-green-500 w-[100px] rounded-3xl text-white"
             type="submit"
             onClick={RegisterHandler}
           >

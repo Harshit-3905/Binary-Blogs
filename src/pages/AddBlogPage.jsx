@@ -178,7 +178,7 @@ const AddBlogPage = ({ post }) => {
       </div>
     );
   } else {
-    return <div>Login to Add Blogs</div>;
+    return <div className="text-4xl font-bold">Login to Add Blogs</div>;
   }
 };
 
