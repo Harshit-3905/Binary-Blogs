@@ -17,10 +17,11 @@ const AllBlogPage = () => {
   }, []);
 
   return (
-    <div className="w-full h-full flex justify-center">
-      <div className="w-[80%] flex flex-wrap justify-center gap-10 p-8">
+    <div className="w-full min-h-[85vh] flex justify-center">
+      <div className="w-full flex flex-wrap justify-center items-center gap-10 p-8">
         {blogs.length === 0 ? (
           <>
+            <BlogCardLoading />
             <BlogCardLoading />
             <BlogCardLoading />
             <BlogCardLoading />

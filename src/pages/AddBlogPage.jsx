@@ -65,7 +65,7 @@ const AddBlogPage = ({ post }) => {
 
   if (userID) {
     return (
-      <div className="w-[80%] h-full flex flex-col justify-center py-10">
+      <div className="w-[80%] min-h-[85vh] flex flex-col justify-center py-10">
         <label htmlFor="title" className=" ml-2 text-xl">
           Title :
         </label>
@@ -178,7 +178,11 @@ const AddBlogPage = ({ post }) => {
       </div>
     );
   } else {
-    return <div className="text-4xl font-bold">Login to Add Blogs</div>;
+    return (
+      <div className="text-4xl font-bold h-[85vh] flex items-center justify-center">
+        Login to Add Blogs
+      </div>
+    );
   }
 };
 

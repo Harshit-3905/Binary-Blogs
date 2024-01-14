@@ -3,7 +3,7 @@ import homebackground from "../assets/homebackground.jpg";
 const HomePage = () => {
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-center"
+      className="w-full min-h-[85vh] flex flex-col items-center justify-center"
       style={{
         backgroundImage: `url(${homebackground})`,
         backgroundSize: "cover",
