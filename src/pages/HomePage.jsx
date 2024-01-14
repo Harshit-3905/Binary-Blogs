@@ -1,10 +1,17 @@
-// import { BlogCard } from "../components/index";
+import homebackground from "../assets/homebackground.jpg";
 
 const HomePage = () => {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
-      <div className="w-[80%] h-[300px] mt-10 bg-[#00B4D8] flex flex-col items-center justify-center rounded-3xl">
-        <h1 className="text-4xl p-5 font-medium">Welcome to Binary Blogs</h1>
+    <div
+      className="w-full h-full flex flex-col items-center justify-center"
+      style={{
+        backgroundImage: `url(${homebackground})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="w-[60%] mt-10 p-10 flex flex-col items-center justify-center rounded-3xl bg-[#48CAE4]">
+        <h1 className="text-4xl pb-5 font-medium">Welcome to Binary Blogs</h1>
         <div className="text-xl text-center">
           <p>
             We offer a wide range of blogs on interview preparation, coding, and
@@ -24,14 +31,6 @@ const HomePage = () => {
           </p>
         </div>
       </div>
-      {/* <div className="w-[80%] bg-blue-500 mt-10 rounded-3xl flex flex-col items-center p-5 m-10">
-        <h1 className="text-3xl">Recent Blogs</h1>
-        <div className="w-full flex flex-row justify-center gap-5 mt-8">
-          <BlogCard />
-          <BlogCard />
-          <BlogCard />
-        </div>
-      </div> */}
     </div>
   );
 };
