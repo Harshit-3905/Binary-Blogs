@@ -18,7 +18,13 @@ const Login = () => {
     setLoading(true);
     if (email === "" || password === "") {
       setLoading(false);
-      return toast.error("Please Fill All The Fields");
+      toast.error("Please Fill All The Fields");
+      return;
+    }
+    if (password.length < 8) {
+      setLoading(false);
+      toast.error("Password must be atleast 8 characters long");
+      return;
     }
     const data = {
       email,
@@ -28,9 +34,9 @@ const Login = () => {
       const session = await authService.login(data);
       if (session) {
         const userData = await authService.getCurrentUser();
+        toast.success("Login Successful");
         if (userData) {
           dispatch(login(userData));
-          toast.success("Login Successful");
           setLoading(false);
           navigate("/");
         }

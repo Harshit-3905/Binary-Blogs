@@ -3,25 +3,40 @@ import { Link, useNavigate } from "react-router-dom";
 import authService from "../../appwrite/auth";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/authSlice";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const SignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPasswrod] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const RegisterHandler = async (e) => {
-    const data = { email, password, name };
     e.preventDefault();
+    setLoading(true);
+    if (name === "" || email === "" || password === "") {
+      setLoading(false);
+      toast.error("Please Fill All The Fields");
+      return;
+    }
+    if (password.length < 8) {
+      setLoading(false);
+      toast.error("Password must be atleast 8 characters long");
+      return;
+    }
+    const data = { email, password, name };
     try {
       const session = await authService.createAccount(data);
       if (session) {
         const userData = await authService.getCurrentUser();
+        toast.success("Account Created Successfully");
         if (userData) dispatch(login(userData));
         navigate("/");
       }
     } catch (error) {
-      console.log(error);
+      toast.error(error.message);
     }
   };
   return (
@@ -68,8 +83,9 @@ const SignUp = () => {
             className="p-2 mt-5 bg-green-500 w-[100px] rounded-3xl text-white"
             type="submit"
             onClick={RegisterHandler}
+            disabled={loading}
           >
-            Sign Up
+            {loading ? "Loading" : "Sign Up"}
           </button>
         </div>
       </form>
@@ -79,6 +95,18 @@ const SignUp = () => {
           Login
         </Link>
       </p>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable
+        pauseOnHover={false}
+        theme="light"
+      />
     </div>
   );
 };
