@@ -10,7 +10,7 @@ import { Login, SignUp } from "./components";
 import "./index.css";
 import {
   RouterProvider,
-  createBrowserRouter,
+  createHashRouter,
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
@@ -18,7 +18,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import { Provider } from "react-redux";
 import store from "./store/store.js";
 
-const router = createBrowserRouter(
+const router = createHashRouter(
   createRoutesFromElements(
     <Route path="/" element={<App />}>
       <Route path="" element={<HomePage />} />

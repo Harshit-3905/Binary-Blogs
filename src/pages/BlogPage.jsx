@@ -22,16 +22,14 @@ const BlogPage = () => {
   });
   if (post)
     return (
-      <div className="h-full flex flex-col items-center justify-center">
+      <div className="w-full flex flex-col items-center justify-center">
         <img
           src={appwriteService.getFilePreview(post.featuredImage)}
           alt={slug}
-          className="w-[500px] mt-10"
+          className="w-[500px] h-[300px] mt-10"
         />
-        <h1 className="text-3xl font-bold mt-10 bg-blue-300">{post.title}</h1>
-        <div className="w-[80%] text-xl my-10 bg-red-200">
-          {parse(post.content)}
-        </div>
+        <h1 className="text-3xl font-bold mt-10 ">{post.title}</h1>
+        <div className="w-[80%] text-xl my-10">{parse(post.content)}</div>
         {userData && userData === post.userID && (
           <div className="flex my-10">
             <Link to={`/blog/${slug}/edit`}>
