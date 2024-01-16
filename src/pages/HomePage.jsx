@@ -6,6 +6,7 @@ const HomePage = () => {
       className="w-full min-h-[85vh] flex flex-col items-center justify-center"
       style={{
         backgroundImage: `url(${homebackground})`,
+        load: "lazy",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
