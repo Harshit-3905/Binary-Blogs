@@ -43,7 +43,8 @@ class AuthService {
     try {
       return await this.account.get();
     } catch (error) {
-      return null;
+      if (error.code === 401) return null;
+      console.error(error);
     }
   }
 
