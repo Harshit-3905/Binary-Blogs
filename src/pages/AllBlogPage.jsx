@@ -10,7 +10,6 @@ const AllBlogPage = () => {
     async function getData() {
       await appwriteService.getBlogs().then((res) => {
         setBlogs(res.documents);
-        console.log(blogs);
       });
     }
     getData();

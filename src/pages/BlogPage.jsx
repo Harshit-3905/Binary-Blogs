@@ -4,14 +4,20 @@ import { useState, useEffect } from "react";
 import parse from "html-react-parser";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 
 const BlogPage = () => {
   const slug = useParams().slug;
   const [post, setPost] = useState(null);
   const navigate = useNavigate();
   const deleteHandler = async () => {
-    await appwriteService.deletePost(slug);
-    navigate("/blogs");
+    try {
+      await appwriteService.deletePost(slug);
+      toast.success("Post deleted successfully");
+      navigate("/blogs");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
   const userData = useSelector((state) => state.auth.userData);
   useEffect(() => {
@@ -45,6 +51,18 @@ const BlogPage = () => {
             </button>
           </div>
         )}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss={false}
+          draggable
+          pauseOnHover={false}
+          theme="light"
+        />
       </div>
     );
   else

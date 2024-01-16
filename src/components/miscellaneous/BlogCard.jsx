@@ -7,9 +7,9 @@ const BlogCard = (props) => {
       <div className=" w-[full] h-[full] p-5 flex flex-col">
         <img src={props.image} className="h-[150px] w-full rounded-2xl" />
         <h1 className="w-full text-2xl mt-3 font-medium">{props.title}</h1>
-        <p className="w-full h-[100px] mt-3 overflow-hidden">
+        <div className="w-full h-[100px] mt-3 overflow-hidden">
           {parse(props.content)}
-        </p>
+        </div>
       </div>
     </div>
   );

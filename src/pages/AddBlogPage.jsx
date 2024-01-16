@@ -5,6 +5,7 @@ import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import appwriteService from "../appwrite/service";
 import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 
 const AddBlogPage = ({ post }) => {
   const [title, setTitle] = useState(post?.title || "");
@@ -12,12 +13,18 @@ const AddBlogPage = ({ post }) => {
   const [content, setContent] = useState(post?.content || "");
   const [image, setImage] = useState(post?.featuredImage || null);
   const [status, setStatus] = useState(post?.status || "public");
+  const [loading, setLoading] = useState(false);
   const userID = useSelector((state) => state.auth.userData);
   const slugTransform = useCallback((slug) => {
     if (!post && slug) setSlug(slug.toLowerCase().replace(/\s+/g, "-"));
   }, []);
   const navigate = useNavigate();
   const SubmitHandler = async () => {
+    setLoading(true);
+    if (title === "" || content === "") {
+      toast.error("Please Fill All The Fields");
+      return;
+    }
     try {
       const fileID = await appwriteService.uploadFile(image);
       const data = {
@@ -30,13 +37,23 @@ const AddBlogPage = ({ post }) => {
       };
       const blog = await appwriteService.createPost(data);
       if (blog) {
+        toast.success("Blog Added Successfully");
         navigate("/blog/" + slug);
+      } else {
+        toast.error("Something Went Wrong");
       }
     } catch (err) {
-      console.log(err);
+      toast.error(err.message);
     }
+    setLoading(false);
   };
   const updateHandler = async () => {
+    setLoading(true);
+    if (title === "" || slug === "" || content === "" || image === null) {
+      toast.error("Please Fill All The Fields");
+      setLoading(false);
+      return;
+    }
     try {
       const data = {
         title,
@@ -52,20 +69,24 @@ const AddBlogPage = ({ post }) => {
       }
       const blog = await appwriteService.updatePost(post.$id, data);
       if (blog) {
+        toast.success("Blog Updated Successfully");
         navigate("/blog/" + slug);
+      } else {
+        toast.error("Something Went Wrong");
       }
     } catch (err) {
-      console.log(err);
+      toast.error(err.message);
     }
+    setLoading(false);
   };
   useEffect(() => {
-    if (title === "") setSlug("");
+    if (!post && title === "") setSlug("");
     else slugTransform(title);
   }, [title, slugTransform]);
 
   if (userID) {
     return (
-      <div className="w-[80%] min-h-[85vh] flex flex-col justify-center py-10">
+      <div className="w-[70%] min-h-[85vh] flex flex-col justify-center py-10">
         <label htmlFor="title" className=" ml-2 text-xl">
           Title :
         </label>
@@ -77,6 +98,7 @@ const AddBlogPage = ({ post }) => {
           placeholder="Enter Title"
           className="rounded-2xl p-2 my-3"
           onChange={(e) => setTitle(e.target.value)}
+          required
         />
         <label htmlFor="slug" className=" ml-2 text-xl">
           Slug :
@@ -135,7 +157,7 @@ const AddBlogPage = ({ post }) => {
               "anchor",
             ],
             toolbar:
-              "undo redo | blocks | image | bold italic forecolor | alignleft aligncenter bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent |removeformat | help",
+              "undo redo | blocks | image | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent |removeformat | help",
             content_style:
               "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
           }}
@@ -163,18 +185,32 @@ const AddBlogPage = ({ post }) => {
             <button
               className="bg-green-800 text-white rounded-2xl p-2 my-5 w-24 justify-center"
               onClick={updateHandler}
+              disabled={loading}
             >
-              Update
+              {loading ? "Loading" : "Update"}
             </button>
           ) : (
             <button
               className="bg-green-800 text-white rounded-2xl p-2 my-5 w-24 justify-center"
               onClick={SubmitHandler}
+              disabled={loading}
             >
-              Submit
+              {loading ? "Loading" : "Submit"}
             </button>
           )}
         </div>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss={false}
+          draggable
+          pauseOnHover={false}
+          theme="light"
+        />
       </div>
     );
   } else {

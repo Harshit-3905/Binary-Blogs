@@ -29,7 +29,7 @@ class Service {
       );
       return post;
     } catch (error) {
-      console.error(error);
+      return null;
     }
   }
 
