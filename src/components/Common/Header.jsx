@@ -6,8 +6,10 @@ import { useDispatch } from "react-redux";
 import { logout } from "../../store/authSlice";
 import logo from "../../assets/Logo.png";
 import { ToastContainer, toast } from "react-toastify";
+import { useState } from "react";
 
 const Header = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authStatus = useSelector((state) => state.auth.status);
@@ -43,7 +45,7 @@ const Header = () => {
             />
           </Link>
         </div>
-        <div className="w-[400px]">
+        <div className="hidden lg:inline-block w-[400px]">
           <ul className="flex justify-evenly">
             {NavItems.map((item) => (
               <NavLink
@@ -64,18 +66,24 @@ const Header = () => {
         </div>
         {authStatus ? (
           <button
-            className="h-12 w-32 bg-red-600 p-3 rounded-xl text-white"
+            className="hidden lg:inline h-12 w-32 bg-red-600 p-3 rounded-xl text-white"
             onClick={LogoutHandler}
           >
             LogOut
           </button>
         ) : (
           <Link to="/auth/login">
-            <button className="h-12 w-32 bg-red-600 p-3 rounded-xl text-white">
+            <button className="hidden lg:inline h-12 w-32 bg-red-600 p-3 rounded-xl text-white">
               Login/SignUp
             </button>
           </Link>
         )}
+        <button
+          className="lg:hidden h-12 w-12 p-3 rounded-xl text-white"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <></> : <>&#9776;</>}
+        </button>
       </div>
       <ToastContainer
         position="top-right"

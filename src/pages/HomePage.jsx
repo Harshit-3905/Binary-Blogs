@@ -3,7 +3,7 @@ import homebackground from "../assets/homebackground.jpg";
 const HomePage = () => {
   return (
     <div
-      className="w-full min-h-[85vh] flex flex-col items-center justify-center"
+      className="w-full h-[100vh] lg:min-h-[85vh] flex flex-col items-center justify-center"
       style={{
         backgroundImage: `url(${homebackground})`,
         load: "lazy",
@@ -11,9 +11,11 @@ const HomePage = () => {
         backgroundPosition: "center",
       }}
     >
-      <div className="w-[60%] mt-10 p-10 flex flex-col items-center justify-center rounded-3xl bg-[#48CAE4]">
-        <h1 className="text-4xl pb-5 font-medium">Welcome to Binary Blogs</h1>
-        <div className="text-xl text-center">
+      <div className="w-[90%] md:w-[60%] mt-10 p-5 md:p-10 flex flex-col items-center justify-center rounded-3xl bg-[#48CAE4]">
+        <h1 className="text-2xl md:text-4xl pb-5 font-medium">
+          Welcome to Binary Blogs
+        </h1>
+        <div className="text-md md:text-xl text-center">
           <p>
             We offer a wide range of blogs on interview preparation, coding, and
             technology to help you advance your career.
