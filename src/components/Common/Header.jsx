@@ -7,6 +7,7 @@ import { logout } from "../../store/authSlice";
 import logo from "../../assets/Logo.png";
 import { ToastContainer, toast } from "react-toastify";
 import { useState } from "react";
+import { ThreeBarsIcon, XIcon } from "@primer/octicons-react";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,8 +83,45 @@ const Header = () => {
           className="lg:hidden h-12 w-12 p-3 rounded-xl text-white"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? <></> : <>&#9776;</>}
+          {isOpen ? <XIcon size={24} /> : <ThreeBarsIcon size={24} />}
         </button>
+      </div>
+      <div
+        className={`${
+          isOpen ? "block" : "hidden"
+        } lg:hidden w-[100vw] bg-[#48CAE4] flex flex-col items-center justify-center`}
+      >
+        <ul className="flex flex-col justify-evenly">
+          {NavItems.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.link}
+              className={({ isActive }) =>
+                `block py-2 pr-4 pl-3 duration-200 ${
+                  isActive
+                    ? "underline underline-offset-4 text-[#03045E]"
+                    : "no-underline"
+                } text-xl hover:text-[#03045E] font-medium`
+              }
+            >
+              {item.name}
+            </NavLink>
+          ))}
+          {authStatus ? (
+            <li
+              className="block py-2 pr-4 pl-3 duration-200 text-xl hover:text-[#03045E] font-medium"
+              onClick={LogoutHandler}
+            >
+              LogOut
+            </li>
+          ) : (
+            <Link to="/auth/login">
+              <li className="block py-2 pr-4 pl-3 duration-200 text-xl hover:text-[#03045E] font-medium">
+                Login/SignUp
+              </li>
+            </Link>
+          )}
+        </ul>
       </div>
       <ToastContainer
         position="top-right"
