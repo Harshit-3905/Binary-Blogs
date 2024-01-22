@@ -36,7 +36,7 @@ const Header = () => {
   ];
   return (
     <>
-      <div className="w-[100vw] h-[10vh] bg-[#48CAE4] flex items-center justify-between px-10">
+      <div className="w-full h-[10vh] bg-[#48CAE4] flex items-center justify-between px-10">
         <div className="h-full p-2">
           <Link to="/">
             <img

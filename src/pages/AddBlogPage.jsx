@@ -86,7 +86,7 @@ const AddBlogPage = ({ post }) => {
 
   if (userID) {
     return (
-      <div className="w-[70%] min-h-[85vh] flex flex-col justify-center py-10">
+      <div className="w-[90%] md:w-[70%] min-h-[85vh] flex flex-col justify-center py-10">
         <label htmlFor="title" className=" ml-2 text-xl">
           Title :
         </label>

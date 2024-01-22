@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <div className="w-[100vw] h-[5vh] text-black bg-[#48CAE4] flex items-center justify-center px-5">
+    <div className="w-full h-[5vh] text-black bg-[#48CAE4] flex items-center justify-center px-5">
       <p className="text-xs md:text-lg">
         &copy; 2024 . All Rigths Reserved. Made by{" "}
         <Link

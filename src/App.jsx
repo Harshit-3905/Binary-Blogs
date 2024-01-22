@@ -20,7 +20,7 @@ function App() {
     checkUser();
   }, []);
   return (
-    <div className="w-screen h-screen">
+    <div className="w-full h-screen">
       <Header />
       <div className="min-h-[85vh] flex flex-col items-center justify-center bg-[#ADE8F4]">
         <Outlet />
