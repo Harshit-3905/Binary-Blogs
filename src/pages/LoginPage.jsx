@@ -3,11 +3,11 @@ import image from "../assets/auth.png";
 
 const LoginPage = () => {
   return (
-    <div className="w-[80%] min-h-[70vh] flex rounded-3xl">
-      <div className="w-[50%] h-[80%] flex items-center justify-center ">
+    <div className="w-full min-h-[50vh] md:h-full flex rounded-3xl flex-col lg:flex-row">
+      <div className="w-full h-[50%] flex items-center justify-center">
         <img src={image} alt="" height="300px" loading="lazy" />
       </div>
-      <div className="w-[50%] flex justify-center items-center p-10">
+      <div className="w-full h-[50%] flex justify-center items-center p-10">
         <Outlet />
       </div>
     </div>
