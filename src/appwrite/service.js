@@ -1,5 +1,5 @@
 import config from "../config/config.js";
-import { Client, ID, Databases, Storage, Query } from "appwrite";
+import { Client, ID, Databases, Storage } from "appwrite";
 
 class Service {
   client = new Client();
@@ -80,7 +80,7 @@ class Service {
     }
   }
 
-  async getBlogs(queries = [Query.equal("status", "public")]) {
+  async getBlogs(queries = []) {
     try {
       const posts = await this.database.listDocuments(
         config.appwriteDatabaseID,

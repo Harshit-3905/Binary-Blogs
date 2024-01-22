@@ -1,11 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import HomePage from "./pages/HomePage.jsx";
-import AllBlogPage from "./pages/AllBlogPage.jsx";
-import AddBlogPage from "./pages/AddBlogPage.jsx";
-import EditBlogPage from "./pages/EditBlogPage.jsx";
-import BlogPage from "./pages/BlogPage.jsx";
+import {
+  HomePage,
+  AllBlogPage,
+  AddBlogPage,
+  MyBlogPage,
+  BlogPage,
+  EditBlogPage,
+} from "./pages/index.js";
 import { Login, SignUp } from "./components";
 import "./index.css";
 import {
@@ -24,6 +27,7 @@ const router = createHashRouter(
       <Route path="" element={<HomePage />} />
       <Route path="blogs" element={<AllBlogPage />} />
       <Route path="addblog" element={<AddBlogPage />} />
+      <Route path="myblogs" element={<MyBlogPage />} />
       <Route path="auth" element={<LoginPage />}>
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<SignUp />} />

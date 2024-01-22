@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
-import { BlogCard } from "../components";
-import { BlogCardLoading } from "../components";
 import appwriteService from "../appwrite/service";
+import { BlogCardLoading, BlogCard } from "../components";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Query } from "appwrite";
 
-const AllBlogPage = () => {
+const MyBlogPage = () => {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const userData = useSelector((state) => state.auth.userData);
   useEffect(() => {
     async function getData() {
       setLoading(true);
       await appwriteService
-        .getBlogs([Query.equal("status", ["public"])])
+        .getBlogs([Query.equal("userID", [userData])])
         .then((res) => {
           setBlogs(res.documents);
         });
@@ -20,7 +21,6 @@ const AllBlogPage = () => {
     }
     getData();
   }, []);
-
   return (
     <div className="w-full min-h-[85vh] flex justify-center">
       <div className="w-full flex flex-wrap justify-center items-center gap-10 p-8">
@@ -51,4 +51,4 @@ const AllBlogPage = () => {
   );
 };
 
-export default AllBlogPage;
+export default MyBlogPage;

@@ -24,14 +24,22 @@ const Header = () => {
     {
       name: "Home",
       link: "/",
+      show: true,
     },
     {
       name: "Blogs",
       link: "/blogs",
+      show: true,
     },
     {
       name: "Add Blog",
       link: "/addblog",
+      show: true,
+    },
+    {
+      name: "My Blogs",
+      link: "/myblogs",
+      show: authStatus,
     },
   ];
   return (
@@ -46,7 +54,7 @@ const Header = () => {
             />
           </Link>
         </div>
-        <div className="hidden lg:inline-block w-[400px]">
+        <div className="hidden lg:inline-block w-[500px]">
           <ul className="flex justify-evenly">
             {NavItems.map((item) => (
               <NavLink
@@ -57,7 +65,9 @@ const Header = () => {
                     isActive
                       ? "underline underline-offset-4 text-[#03045E]"
                       : "no-underline"
-                  } text-xl hover:text-[#03045E] font-medium`
+                  } 
+                    ${item.show ? "block" : "hidden"}  
+                  text-xl hover:text-[#03045E] font-medium`
                 }
               >
                 {item.name}
@@ -101,7 +111,9 @@ const Header = () => {
                   isActive
                     ? "underline underline-offset-4 text-[#03045E]"
                     : "no-underline"
-                } text-xl hover:text-[#03045E] font-medium`
+                }
+                ${item.show ? "block" : "hidden"}   
+                text-xl hover:text-[#03045E] font-medium`
               }
             >
               {item.name}
