@@ -29,7 +29,7 @@ const AllBlogPage = () => {
             <BlogCardLoading />
           </>
         ) : blogs.length === 0 ? (
-          <h1 className="text-4xl font-bold h-[85vh] flex items-center justify-center">
+          <h1 className="text-4xl font-bold flex items-center justify-center">
             No Blogs to Display
           </h1>
         ) : (
