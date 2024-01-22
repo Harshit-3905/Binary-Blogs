@@ -6,11 +6,14 @@ import { Link } from "react-router-dom";
 
 const AllBlogPage = () => {
   const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     async function getData() {
+      setLoading(true);
       await appwriteService.getBlogs().then((res) => {
         setBlogs(res.documents);
       });
+      setLoading(false);
     }
     getData();
   }, []);
@@ -18,13 +21,17 @@ const AllBlogPage = () => {
   return (
     <div className="w-full min-h-[85vh] flex justify-center">
       <div className="w-full flex flex-wrap justify-center items-center gap-10 p-8">
-        {blogs.length === 0 ? (
+        {loading ? (
           <>
             <BlogCardLoading />
             <BlogCardLoading />
             <BlogCardLoading />
             <BlogCardLoading />
           </>
+        ) : blogs.length === 0 ? (
+          <h1 className="text-4xl font-bold h-[85vh] flex items-center justify-center">
+            No Blogs to Display
+          </h1>
         ) : (
           blogs.map((blog) => (
             <Link key={blog.$id} to={`/blog/${blog.$id}`}>
