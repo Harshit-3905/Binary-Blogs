@@ -18,6 +18,7 @@ const Header = () => {
     authService.logout();
     toast.success("Logout Successful");
     dispatch(logout());
+    setIsOpen(false);
     navigate("/");
   };
   const NavItems = [
@@ -106,6 +107,7 @@ const Header = () => {
             <NavLink
               key={item.name}
               to={item.link}
+              onClick={() => setIsOpen(false)}
               className={({ isActive }) =>
                 `block py-2 pr-4 pl-3 duration-200 ${
                   isActive
@@ -128,7 +130,10 @@ const Header = () => {
             </li>
           ) : (
             <Link to="/auth/login">
-              <li className="block py-2 pr-4 pl-3 duration-200 text-xl hover:text-[#03045E] font-medium">
+              <li
+                className="block py-2 pr-4 pl-3 duration-200 text-xl hover:text-[#03045E] font-medium"
+                onClick={() => setIsOpen(false)}
+              >
                 Login/SignUp
               </li>
             </Link>
