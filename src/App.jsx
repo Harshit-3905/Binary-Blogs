@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import "./App.css";
 import { Header, Footer } from "./components/index";
 import { Outlet } from "react-router-dom";
 import authService from "./appwrite/auth";
 import { useDispatch } from "react-redux";
 import { login } from "./store/authSlice";
+import LoadingPage from "./pages/LoadingPage";
 
 function App() {
   const dispatch = useDispatch();
@@ -23,7 +24,9 @@ function App() {
     <div className="w-full h-screen">
       <Header />
       <div className="min-h-[85vh] flex flex-col items-center justify-center bg-[#ADE8F4]">
-        <Outlet />
+        <Suspense fallback={<LoadingPage />}>
+          <Outlet />
+        </Suspense>
       </div>
       <Footer />
     </div>

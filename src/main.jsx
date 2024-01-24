@@ -1,15 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import {
-  HomePage,
-  AllBlogPage,
-  AddBlogPage,
-  MyBlogPage,
-  BlogPage,
-  EditBlogPage,
-} from "./pages/index.js";
-import { Login, SignUp } from "./components";
 import "./index.css";
 import {
   RouterProvider,
@@ -17,9 +8,19 @@ import {
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
-import LoginPage from "./pages/LoginPage.jsx";
 import { Provider } from "react-redux";
 import store from "./store/store.js";
+import { lazy } from "react";
+
+const HomePage = lazy(() => import("./pages/HomePage.jsx"));
+const AllBlogPage = lazy(() => import("./pages/AllBlogPage.jsx"));
+const AddBlogPage = lazy(() => import("./pages/AddBlogPage.jsx"));
+const MyBlogPage = lazy(() => import("./pages/MyBlogPage.jsx"));
+const BlogPage = lazy(() => import("./pages/BlogPage.jsx"));
+const EditBlogPage = lazy(() => import("./pages/EditBlogPage.jsx"));
+const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
+const Login = lazy(() => import("./components/Authentication/Login.jsx"));
+const SignUp = lazy(() => import("./components/Authentication/SignUp.jsx"));
 
 const router = createHashRouter(
   createRoutesFromElements(

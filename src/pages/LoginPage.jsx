@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
 import image from "../assets/auth.png";
+import { Suspense } from "react";
+import LoadingPage from "./LoadingPage";
 
 const LoginPage = () => {
   return (
@@ -8,7 +10,9 @@ const LoginPage = () => {
         <img src={image} alt="" height="300px" loading="lazy" />
       </div>
       <div className="w-full h-[50%] flex justify-center items-center p-10">
-        <Outlet />
+        <Suspense fallback={<LoadingPage />}>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );
