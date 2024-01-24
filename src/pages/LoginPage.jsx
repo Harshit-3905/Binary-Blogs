@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import image from "../assets/auth.png";
+import image from "../assets/auth.webp";
 import { Suspense } from "react";
 import LoadingPage from "./LoadingPage";
 
