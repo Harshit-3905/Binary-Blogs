@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { logout } from "../../store/authSlice";
-import logo from "../../assets/Logo.png";
+import logo from "../../assets/Logo.webp";
 import { ToastContainer, toast } from "react-toastify";
 import { useState } from "react";
 import { ThreeBarsIcon, XIcon } from "@primer/octicons-react";

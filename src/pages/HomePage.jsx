@@ -1,4 +1,4 @@
-import homebackground from "../assets/homebackground.jpg";
+import homebackground from "../assets/homebackground.webp";
 
 const HomePage = () => {
   return (
