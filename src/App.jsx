@@ -1,4 +1,4 @@
-import { useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import "./App.css";
 import { Header, Footer } from "./components/index";
 import { Outlet } from "react-router-dom";
@@ -8,6 +8,7 @@ import { login } from "./store/authSlice";
 import LoadingPage from "./pages/LoadingPage";
 
 function App() {
+  const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
   useEffect(() => {
     const checkUser = async () => {
@@ -19,7 +20,9 @@ function App() {
       }
     };
     checkUser();
+    setLoading(false);
   }, []);
+  if (loading) return <LoadingPage />;
   return (
     <div className="w-full h-screen">
       <Header />
