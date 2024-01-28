@@ -25,6 +25,10 @@ const AddBlogPage = ({ post }) => {
       toast.error("Please Fill All The Fields");
       return;
     }
+    if (title.length > 36) {
+      toast.error("Title should be less than 36 characters");
+      return;
+    }
     try {
       const fileID = await appwriteService.uploadFile(image);
       const data = {
@@ -157,7 +161,7 @@ const AddBlogPage = ({ post }) => {
               "anchor",
             ],
             toolbar:
-              "undo redo | blocks | image | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent |removeformat | help",
+              "undo redo | blocks | image | bold italic forecolor underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent |removeformat | help",
             content_style:
               "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
           }}
