@@ -20,7 +20,6 @@ const AddBlogPage = ({ post }) => {
   }, []);
   const navigate = useNavigate();
   const SubmitHandler = async () => {
-    setLoading(true);
     if (title === "" || content === "") {
       toast.error("Please Fill All The Fields");
       return;
@@ -29,6 +28,7 @@ const AddBlogPage = ({ post }) => {
       toast.error("Title should be less than 36 characters");
       return;
     }
+    setLoading(true);
     try {
       const fileID = await appwriteService.uploadFile(image);
       const data = {
