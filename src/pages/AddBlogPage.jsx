@@ -15,6 +15,7 @@ const AddBlogPage = ({ post }) => {
   const [status, setStatus] = useState(post?.status || "public");
   const [loading, setLoading] = useState(false);
   const userID = useSelector((state) => state.auth.userData);
+  const author = useSelector((state) => state.auth.name);
   const slugTransform = useCallback((slug) => {
     if (!post && slug) setSlug(slug.toLowerCase().replace(/\s+/g, "-"));
   }, []);
@@ -38,6 +39,7 @@ const AddBlogPage = ({ post }) => {
         featuredImage: fileID.$id,
         status,
         userID,
+        author,
       };
       const blog = await appwriteService.createPost(data);
       if (blog) {
@@ -166,7 +168,7 @@ const AddBlogPage = ({ post }) => {
               "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
           }}
         />
-        <div>
+        <div className="pt-4">
           <label htmlFor="status" className="mt-5 ml-2 text-xl">
             Status :{" "}
           </label>
@@ -176,7 +178,6 @@ const AddBlogPage = ({ post }) => {
             className="my-3"
             value={status}
             onChange={(e) => {
-              console.log(e.target.value);
               setStatus(e.target.value);
             }}
           >
@@ -234,6 +235,7 @@ AddBlogPage.propTypes = {
     image: PropTypes.string,
     content: PropTypes.string,
     status: PropTypes.string,
+    author: PropTypes.string,
     featuredImage: PropTypes.string,
   }),
 };

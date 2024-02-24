@@ -13,7 +13,15 @@ class Service {
     this.storage = new Storage(this.client);
   }
 
-  async createPost({ title, slug, content, featuredImage, status, userID }) {
+  async createPost({
+    title,
+    slug,
+    content,
+    featuredImage,
+    status,
+    userID,
+    author,
+  }) {
     try {
       const post = await this.database.createDocument(
         config.appwriteDatabaseID,
@@ -25,6 +33,7 @@ class Service {
           featuredImage,
           status,
           userID,
+          author,
         }
       );
       return post;

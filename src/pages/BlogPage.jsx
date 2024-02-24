@@ -26,7 +26,7 @@ const BlogPage = () => {
       setPost(await appwriteService.getPost(slug));
     }
     getData();
-  });
+  }, []);
   if (post)
     return (
       <div className="w-full flex flex-col items-center justify-center">
@@ -36,6 +36,9 @@ const BlogPage = () => {
           className="w-[500px] h-[300px] mt-10"
         />
         <h1 className="text-3xl font-bold mt-10 ">{post.title}</h1>
+        <h2 className="text-xl mt-5">
+          - By <strong>{post.author}</strong>
+        </h2>
         <div className="w-[80%] text-xl my-10">{parse(post.content)}</div>
         {userData && userData === post.userID && (
           <div className="flex my-10">
