@@ -18,11 +18,16 @@ function App() {
       } catch (error) {
         console.log(error);
       }
+      setLoading(false);
     };
     checkUser();
-    setLoading(false);
   }, []);
-  if (loading) return <LoadingPage />;
+  if (loading)
+    return (
+      <div className="w-full h-screen bg-[#ADE8F4]">
+        <LoadingPage />
+      </div>
+    );
   return (
     <div className="w-full h-screen">
       <Header />
