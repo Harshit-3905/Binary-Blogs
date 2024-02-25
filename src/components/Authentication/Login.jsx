@@ -55,14 +55,12 @@ const Login = () => {
   };
   const LoginWithGoogle = async () => {
     try {
-      const session = await authService.loginWithGoogle();
-      if (session) {
-        const userData = await authService.getCurrentUser();
+      authService.loginWithGoogle().then((userData) => {
         if (userData) {
-          toast.success("Login Successful");
           dispatch(login(userData));
+          toast.success("Loggin Successfull!");
         }
-      }
+      });
     } catch (error) {
       toast.error(error.message);
     }
