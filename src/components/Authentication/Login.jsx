@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import { login } from "../../store/authSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FcGoogle } from "react-icons/fc";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -52,6 +53,20 @@ const Login = () => {
     }
     setLoading(false);
   };
+  const LoginWithGoogle = async () => {
+    try {
+      const session = await authService.loginWithGoogle();
+      if (session) {
+        const userData = await authService.getCurrentUser();
+        if (userData) {
+          toast.success("Login Successful");
+          dispatch(login(userData));
+        }
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
   return (
     <div className="h-full w-full flex flex-col items-center justify-center">
       <form className="flex flex-col w-[70%] text-xl ">
@@ -81,7 +96,7 @@ const Login = () => {
         />
         <div className="flex justify-center">
           <button
-            className="p-2 mt-5 bg-green-500 w-[100px] rounded-3xl text-white text-md"
+            className="p-2 mt-5 bg-green-500 w-[200px] rounded-3xl text-white text-md"
             type="submit"
             onClick={LoginHandler}
             disabled={loading}
@@ -111,6 +126,14 @@ const Login = () => {
           </button>
         </div>
       </form>
+      <button
+        onClick={LoginWithGoogle}
+        className="p-2 mt-4 bg-green-500 w-[200px] rounded-3xl text-white text-md flex gap-2"
+      >
+        <FcGoogle size={30} />
+        <span>Login with Google</span>
+      </button>
+
       <p className="mt-5">
         Don&apos;t Have An Account ?{" "}
         <Link to="/auth/signup" className="text-red-600">
