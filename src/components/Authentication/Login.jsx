@@ -58,7 +58,8 @@ const Login = () => {
       authService.loginWithGoogle().then((userData) => {
         if (userData) {
           dispatch(login(userData));
-          toast.success("Loggin Successfull!");
+          navigate("/");
+          toast.success("Login Successfull!");
         }
       });
     } catch (error) {
