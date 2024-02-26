@@ -4,10 +4,14 @@ import { BlogCardLoading } from "../components";
 import appwriteService from "../appwrite/service";
 import { Link } from "react-router-dom";
 import { Query } from "appwrite";
+import { useDispatch, useSelector } from "react-redux";
+import { populateBlogs } from "../store/blogSlice.js";
 
 const AllBlogPage = () => {
   const [blogs, setBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const blogsData = useSelector((state) => state.blogs);
   useEffect(() => {
     async function getData() {
       setLoading(true);
@@ -15,10 +19,16 @@ const AllBlogPage = () => {
         .getBlogs([Query.equal("status", ["public"])])
         .then((res) => {
           setBlogs(res.documents);
+          dispatch(populateBlogs(res.documents));
         });
       setLoading(false);
     }
-    getData();
+    if (blogsData.status) {
+      setBlogs(blogsData.blogs);
+      setLoading(false);
+    } else {
+      getData();
+    }
   }, []);
 
   return (
