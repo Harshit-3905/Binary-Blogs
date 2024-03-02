@@ -11,6 +11,7 @@ const AllBlogPage = () => {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
+  const userID = useSelector((state) => state.auth.userData);
   const blogsData = useSelector((state) => state.blogs);
   useEffect(() => {
     async function getData() {
@@ -52,6 +53,8 @@ const AllBlogPage = () => {
                 title={blog.title}
                 image={appwriteService.getFilePreview(blog.featuredImage)}
                 content={blog.content}
+                likes_count={blog.likes_count}
+                liked={userID ? blog.likes.includes(userID) : false}
               />
             </Link>
           ))
