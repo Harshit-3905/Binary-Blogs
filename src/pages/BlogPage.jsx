@@ -6,11 +6,22 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import LoadingPage from "./LoadingPage";
+import LikeContainer from "../components/miscellaneous/Like.jsx";
 
 const BlogPage = () => {
   const slug = useParams().slug;
   const [post, setPost] = useState(null);
   const navigate = useNavigate();
+  const likeHandler = async () => {
+    try {
+      if (post.likes.includes(userData))
+        await appwriteService.removeLike(slug, userData);
+      else await appwriteService.addLike(slug, userData);
+      setPost(await appwriteService.getPost(slug));
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
   const deleteHandler = async () => {
     try {
       await appwriteService.deletePost(slug);
@@ -40,6 +51,13 @@ const BlogPage = () => {
           - By <strong>{post.author}</strong>
         </h2>
         <div className="w-[80%] text-xl my-10">{parse(post.content)}</div>
+        <div
+          className="flex justify-center items-center gap-2 text-lg pb-2"
+          onClick={likeHandler}
+        >
+          <LikeContainer liked={post.likes.includes(userData)} />{" "}
+          {post.likes_count}
+        </div>
         {userData && userData === post.userID && (
           <div className="flex my-10">
             <Link to={`/blog/${slug}/edit`}>
