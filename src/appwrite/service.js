@@ -130,6 +130,49 @@ class Service {
   getFilePreview(fileID) {
     return this.storage.getFilePreview(config.appwriteBucketID, fileID);
   }
+
+  async addLike(slug, userID) {
+    try {
+      const post = await this.database.getDocument(
+        config.appwriteDatabaseID,
+        config.appwriteCollectionID,
+        slug
+      );
+      post.likes_count += 1;
+      post.likes.push(userID);
+      const updatedPost = await this.database.updateDocument(
+        config.appwriteDatabaseID,
+        config.appwriteCollectionID,
+        slug,
+        post
+      );
+      return updatedPost;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+  async removeLike(slug, userID) {
+    try {
+      const post = await this.database.getDocument(
+        config.appwriteDatabaseID,
+        config.appwriteCollectionID,
+        slug
+      );
+      post.likes_count -= 1;
+      post.likes.remove(userID);
+      const updatedPost = await this.database.updateDocument(
+        config.appwriteDatabaseID,
+        config.appwriteCollectionID,
+        slug,
+        post
+      );
+      return updatedPost;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
 }
 
 const service = new Service();
