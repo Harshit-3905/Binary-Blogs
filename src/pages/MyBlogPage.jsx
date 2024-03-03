@@ -8,13 +8,14 @@ import { Query } from "appwrite";
 const MyBlogPage = () => {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const userData = useSelector((state) => state.auth.userData);
+  const userID = useSelector((state) => state.auth.userData);
   useEffect(() => {
     async function getData() {
       setLoading(true);
       await appwriteService
-        .getBlogs([Query.equal("userID", [userData])])
+        .getBlogs([Query.equal("userID", [userID])])
         .then((res) => {
+          console.log(res);
           setBlogs(res.documents);
         });
       setLoading(false);
@@ -42,6 +43,8 @@ const MyBlogPage = () => {
                 title={blog.title}
                 image={appwriteService.getFilePreview(blog.featuredImage)}
                 content={blog.content}
+                likes_count={blog.likes_count}
+                liked={blog.likes.includes(userID)}
               />
             </Link>
           ))

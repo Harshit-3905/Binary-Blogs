@@ -54,7 +54,7 @@ const AllBlogPage = () => {
                 image={appwriteService.getFilePreview(blog.featuredImage)}
                 content={blog.content}
                 likes_count={blog.likes_count}
-                liked={userID ? blog.likes.includes(userID) : false}
+                liked={blog.likes.includes(userID)}
               />
             </Link>
           ))
