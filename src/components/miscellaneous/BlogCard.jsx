@@ -4,7 +4,7 @@ import LikeContainer from "../miscellaneous/Like.jsx";
 
 const BlogCard = (props) => {
   return (
-    <div className="w-[300px] h-[400px] bg-[#00B4D8] rounded-3xl flex justify-center items-center text-center">
+    <div className="w-[300px] h-[390px] bg-[#00B4D8] rounded-3xl flex justify-center items-center text-center">
       <div className=" w-[full] h-[full] p-5 flex flex-col">
         <img
           src={props.image}

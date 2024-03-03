@@ -16,11 +16,11 @@ const BlogPage = () => {
     try {
       let updatedPost;
       if (post.likes.includes(userData)) {
-        toast.success("Like Removed");
         updatedPost = await appwriteService.removeLike(slug, userData);
+        toast.success("Like Removed");
       } else {
-        toast.success("Blog Liked");
         updatedPost = await appwriteService.addLike(slug, userData);
+        toast.success("Blog Liked");
       }
       setPost(updatedPost);
     } catch (error) {
