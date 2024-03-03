@@ -12,8 +12,13 @@ const BlogPage = () => {
   const slug = useParams().slug;
   const [post, setPost] = useState(null);
   const navigate = useNavigate();
+  const userData = useSelector((state) => state.auth.userData);
   const likeHandler = async () => {
     try {
+      if (userData === null) {
+        toast.error("Please Login to like the blog");
+        return;
+      }
       let updatedPost;
       if (post.likes.includes(userData)) {
         updatedPost = await appwriteService.removeLike(slug, userData);
@@ -36,7 +41,6 @@ const BlogPage = () => {
       toast.error(error.message);
     }
   };
-  const userData = useSelector((state) => state.auth.userData);
   useEffect(() => {
     async function getData() {
       setPost(await appwriteService.getPost(slug));
