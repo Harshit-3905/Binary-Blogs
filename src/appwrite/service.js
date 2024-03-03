@@ -144,7 +144,10 @@ class Service {
         config.appwriteDatabaseID,
         config.appwriteCollectionID,
         slug,
-        post
+        {
+          likes: post.likes,
+          likes_count: post.likes_count,
+        }
       );
       return updatedPost;
     } catch (error) {
@@ -152,6 +155,7 @@ class Service {
       return false;
     }
   }
+
   async removeLike(slug, userID) {
     try {
       const post = await this.database.getDocument(
@@ -160,12 +164,15 @@ class Service {
         slug
       );
       post.likes_count -= 1;
-      post.likes.remove(userID);
+      post.likes = post.likes.filter((id) => id != userID);
       const updatedPost = await this.database.updateDocument(
         config.appwriteDatabaseID,
         config.appwriteCollectionID,
         slug,
-        post
+        {
+          likes: post.likes,
+          likes_count: post.likes_count,
+        }
       );
       return updatedPost;
     } catch (error) {

@@ -14,10 +14,13 @@ const BlogPage = () => {
   const navigate = useNavigate();
   const likeHandler = async () => {
     try {
-      if (post.likes.includes(userData))
-        await appwriteService.removeLike(slug, userData);
-      else await appwriteService.addLike(slug, userData);
-      setPost(await appwriteService.getPost(slug));
+      let updatedPost;
+      if (post.likes.includes(userData)) {
+        updatedPost = await appwriteService.removeLike(slug, userData);
+      } else {
+        updatedPost = await appwriteService.addLike(slug, userData);
+      }
+      setPost(updatedPost);
     } catch (error) {
       toast.error(error.message);
     }
@@ -37,7 +40,7 @@ const BlogPage = () => {
       setPost(await appwriteService.getPost(slug));
     }
     getData();
-  }, []);
+  }, [slug]);
   if (post)
     return (
       <div className="w-full flex flex-col items-center justify-center">

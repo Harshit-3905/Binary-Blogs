@@ -9,7 +9,7 @@ const LikeContainer = (props) => {
       <input
         type="checkbox"
         className="checkbox absolute w-full h-full opacity-0 z-20 cursor-pointer"
-        value={props.liked}
+        checked={props.liked}
       />
       <div className="svg-container flex justify-center items-center h-full">
         <svg viewBox="0 0 24 24" className="svg-outline fill-current absolute">
