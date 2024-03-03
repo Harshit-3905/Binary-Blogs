@@ -2,39 +2,17 @@ import PropTypes from "prop-types";
 
 const LikeContainer = (props) => {
   return (
-    <div
-      className="heart-container w-5 h-5 relative transition duration-300"
-      style={{ "--heart-color": "rgb(255, 91, 137)" }}
-    >
-      <input
-        type="checkbox"
-        className="checkbox absolute w-full h-full opacity-0 z-20 cursor-pointer"
-        checked={props.liked}
-      />
-      <div className="svg-container flex justify-center items-center h-full">
-        <svg viewBox="0 0 24 24" className="svg-outline fill-current absolute">
-          <path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Z"></path>
-        </svg>
-        <svg
-          viewBox="0 0 24 24"
-          className="svg-filled fill-current absolute animate-svg-filled hidden"
-        >
-          <path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Z"></path>
-        </svg>
-        <svg
-          className="svg-celebrate stroke-current fill-current absolute animate-svg-celebrate hidden"
-          width="100"
-          height="100"
-        >
-          <polygon points="10,10 20,20"></polygon>
-          <polygon points="10,50 20,50"></polygon>
-          <polygon points="20,80 30,70"></polygon>
-          <polygon points="90,10 80,20"></polygon>
-          <polygon points="90,50 80,50"></polygon>
-          <polygon points="80,80 70,70"></polygon>
-        </svg>
-      </div>
-    </div>
+    <button>
+      <svg
+        className={`${
+          props.liked ? "text-red-400" : "text-black-400"
+        } w-6 h-auto fill-current`}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 512 512"
+      >
+        <path d="M0 190.9V185.1C0 115.2 50.52 55.58 119.4 44.1C164.1 36.51 211.4 51.37 244 84.02L256 96L267.1 84.02C300.6 51.37 347 36.51 392.6 44.1C461.5 55.58 512 115.2 512 185.1V190.9C512 232.4 494.8 272.1 464.4 300.4L283.7 469.1C276.2 476.1 266.3 480 256 480C245.7 480 235.8 476.1 228.3 469.1L47.59 300.4C17.23 272.1 .0003 232.4 .0003 190.9L0 190.9z" />
+      </svg>
+    </button>
   );
 };
 LikeContainer.propTypes = {
