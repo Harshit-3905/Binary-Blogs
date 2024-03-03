@@ -15,7 +15,6 @@ const MyBlogPage = () => {
       await appwriteService
         .getBlogs([Query.equal("userID", [userID])])
         .then((res) => {
-          console.log(res);
           setBlogs(res.documents);
         });
       setLoading(false);
