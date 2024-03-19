@@ -66,6 +66,11 @@ const Login = () => {
       toast.error(error.message);
     }
   };
+  const GetGuestCredentials = async (e) => {
+    e.preventDefault();
+    setEmail("guest@example.com");
+    setPassword("Guest@123");
+  };
   return (
     <div className="h-full w-full flex flex-col items-center justify-center">
       <form className="flex flex-col w-[70%] text-xl ">
@@ -93,7 +98,7 @@ const Login = () => {
           className="mt-2 rounded-2xl p-2 "
           onChange={(e) => setPassword(e.target.value)}
         />
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-5">
           <button
             className="p-2 mt-5 bg-green-500 w-[200px] rounded-3xl text-white text-md"
             type="submit"
@@ -122,6 +127,12 @@ const Login = () => {
             ) : (
               "Login"
             )}
+          </button>
+          <button
+            onClick={GetGuestCredentials}
+            className="p-2 mt-5 bg-green-500 w-[300px] rounded-3xl text-white text-md"
+          >
+            <span>Get Guest Credentials</span>
           </button>
         </div>
       </form>
