@@ -55,6 +55,7 @@ const AllBlogPage = () => {
                 content={blog.content}
                 likes_count={blog.likes_count}
                 liked={blog.likes.includes(userID)}
+                view_count={blog.view_count}
               />
             </Link>
           ))

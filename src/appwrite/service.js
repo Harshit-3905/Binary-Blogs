@@ -82,6 +82,15 @@ class Service {
         config.appwriteCollectionID,
         slug
       );
+      post.view_count += 1;
+      await this.database.updateDocument(
+        config.appwriteDatabaseID,
+        config.appwriteCollectionID,
+        slug,
+        {
+          view_count: post.view_count,
+        }
+      );
       return post;
     } catch (error) {
       console.error(error);

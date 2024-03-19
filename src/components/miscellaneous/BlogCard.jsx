@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import parse from "html-react-parser";
 import LikeContainer from "../miscellaneous/Like.jsx";
+import { EyeIcon } from "@primer/octicons-react";
 
 const BlogCard = (props) => {
   return (
@@ -18,7 +19,8 @@ const BlogCard = (props) => {
           {parse(props.content)}
         </div>
         <div className="flex justify-center items-center gap-2 text-lg">
-          <LikeContainer liked={props.liked} /> {props.likes_count}
+          <LikeContainer liked={props.liked} /> {props.likes_count}{" "}
+          <EyeIcon size={24} /> {props.view_count}
         </div>
       </div>
     </div>
@@ -31,6 +33,7 @@ BlogCard.propTypes = {
   image: PropTypes.object.isRequired,
   likes_count: PropTypes.number,
   liked: PropTypes.bool,
+  view_count: PropTypes.number,
 };
 
 export default BlogCard;

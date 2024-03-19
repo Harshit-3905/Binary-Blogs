@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import LoadingPage from "./LoadingPage";
 import LikeContainer from "../components/miscellaneous/Like.jsx";
+import { EyeIcon } from "@primer/octicons-react";
 
 const BlogPage = () => {
   const slug = useParams().slug;
@@ -65,7 +66,7 @@ const BlogPage = () => {
           onClick={likeHandler}
         >
           <LikeContainer liked={post.likes.includes(userData)} />{" "}
-          {post.likes_count}
+          {post.likes_count} <EyeIcon size={24} /> {post.view_count}
         </div>
         {userData && userData === post.userID && (
           <div className="flex my-10">
