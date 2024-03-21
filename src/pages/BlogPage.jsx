@@ -44,7 +44,29 @@ const BlogPage = () => {
   };
   useEffect(() => {
     async function getData() {
-      setPost(await appwriteService.getPost(slug));
+      try {
+        const getPost = await appwriteService.getPost(slug);
+        if (!getPost) {
+          console.log("Post not found with the provided slug");
+          return;
+        }
+        const originalDateString = getPost.published_on;
+        if (!originalDateString) {
+          console.log("Published date is missing or invalid");
+          return;
+        }
+        const dateObject = new Date(originalDateString);
+        const day = dateObject.getUTCDate().toString().padStart(2, "0");
+        const month = (dateObject.getUTCMonth() + 1)
+          .toString()
+          .padStart(2, "0");
+        const year = dateObject.getUTCFullYear();
+        const formattedDate = `${day}-${month}-${year}`;
+        getPost.published_on = formattedDate;
+        setPost(getPost);
+      } catch (error) {
+        console.error("Error occurred while processing post:", error);
+      }
     }
     getData();
   }, [slug]);
@@ -59,6 +81,9 @@ const BlogPage = () => {
         <h1 className="text-3xl font-bold mt-10 ">{post.title}</h1>
         <h2 className="text-xl mt-5">
           - By <strong>{post.author}</strong>
+        </h2>
+        <h2 className="text-xl mt-5">
+          - Published on <strong>{post.published_on}</strong>
         </h2>
         <div className="w-[80%] text-xl my-10">{parse(post.content)}</div>
         <div

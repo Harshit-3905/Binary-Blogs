@@ -34,6 +34,7 @@ class Service {
           status,
           userID,
           author,
+          published_on: new Date().toLocaleDateString("en-GB"),
         }
       );
       return post;
