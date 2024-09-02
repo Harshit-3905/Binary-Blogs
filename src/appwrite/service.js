@@ -1,5 +1,5 @@
 import config from "../config/config.js";
-import { Client, ID, Databases, Storage } from "appwrite";
+import { Client, ID, Databases, Storage, Query } from "appwrite";
 
 class Service {
   client = new Client();
@@ -100,6 +100,22 @@ class Service {
   }
 
   async getBlogs(queries = []) {
+    try {
+      const posts = await this.database.listDocuments(
+        config.appwriteDatabaseID,
+        config.appwriteCollectionID,
+        queries
+      );
+      return posts;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+
+  async getTrendingBlogs(
+    queries = [Query.orderDesc("view_count"), Query.limit(4)]
+  ) {
     try {
       const posts = await this.database.listDocuments(
         config.appwriteDatabaseID,
