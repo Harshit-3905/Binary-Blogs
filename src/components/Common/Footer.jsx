@@ -6,7 +6,7 @@ const Footer = () => {
       <p className="text-xs md:text-lg">
         &copy; 2024 . All Rigths Reserved. Made by{" "}
         <Link
-          to="https://www.linkedin.com/in/harshit-joshi-40953321b/"
+          to="https://harshitjoshi.me/"
           className="text-blue-950 font-bold text-xs md:text-lg"
           target="_blank"
         >
