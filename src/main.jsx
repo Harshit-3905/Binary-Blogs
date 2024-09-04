@@ -3,9 +3,9 @@ import App from "./App.jsx";
 import "./index.css";
 import {
   RouterProvider,
-  createHashRouter,
   createRoutesFromElements,
   Route,
+  createHashRouter,
 } from "react-router-dom";
 import { Provider } from "react-redux";
 import store from "./store/store.js";

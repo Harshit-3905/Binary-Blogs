@@ -42,8 +42,8 @@ class AuthService {
     try {
       const userAccount = await this.account.createOAuth2Session(
         "google",
-        "https://binary-blogs.onrender.com/", // Success URL
-        "https://binary-blogs.onrender.com/auth/login" // Failure URL
+        "https://d2yqcp2jyyrzrk.cloudfront.net/", // Success URL
+        "https://d2yqcp2jyyrzrk.cloudfront.net/#/auth/login" // Failure URL
       );
       return userAccount;
     } catch (error) {

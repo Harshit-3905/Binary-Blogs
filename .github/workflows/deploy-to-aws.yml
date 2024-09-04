@@ -1,0 +1,40 @@
+on:
+  push:
+    branches:
+      - main
+name: Deploy React App to AWS S3 using Github Actions
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20.x"
+      - name: Build App
+        run: npm install && npm run build && ls *
+        env:
+          CI: ""
+          VITE_APP_APPWRITE_URL: ${{ secrets.VITE_APP_APPWRITE_URL }}
+          VITE_APP_APPWRITE_PROJECT_ID: ${{ secrets.VITE_APP_APPWRITE_PROJECT_ID }}
+          VITE_APPWRITE_DATABASE_ID: ${{ secrets.VITE_APPWRITE_DATABASE_ID }}
+          VITE_APPWRITE_COLLECTION_ID: ${{ secrets.VITE_APPWRITE_COLLECTION_ID }}
+          VITE_APPWRITE_BUCKET_ID: ${{ secrets.VITE_APPWRITE_BUCKET_ID }}
+          VITE_APP_TINYMCE_API_KEY: ${{ secrets.VITE_APP_TINYMCE_API_KEY }}
+      - name: Copy to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --follow-symlinks --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SOURCE_DIR: "dist"
+      - name: Invalidate CloudFront cache
+        env:
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} --paths "/*"
