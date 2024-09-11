@@ -1,22 +1,29 @@
 import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import appwriteService from "../../appwrite/service";
 import { Link } from "react-router-dom";
 import { BlogCard, BlogCardLoading } from "..";
+import { setTrendingBlogs } from "../../store/blogSlice";
 
 const TrendingBlogs = () => {
-  const [trendingBlogs, setTrendingBlogs] = useState([]);
+  const dispatch = useDispatch();
+  const { trendingBlogs } = useSelector((state) => state.blogs);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function getData() {
-      setLoading(true);
-      await appwriteService.getTrendingBlogs().then((res) => {
-        if (res.documents) setTrendingBlogs(res.documents);
-      });
-      setLoading(false);
+  async function getData() {
+    setLoading(true);
+    const res = await appwriteService.getTrendingBlogs();
+    if (res.documents) {
+      dispatch(setTrendingBlogs(res.documents));
     }
-    getData();
-  }, []);
+    setLoading(false);
+  }
+  useEffect(() => {
+    if (trendingBlogs.length === 0) {
+      getData();
+    }
+  }, [trendingBlogs, dispatch]);
+
   return (
     <div className="w-full py-16">
       <h2 className="text-3xl font-bold mb-8 text-center underline underline-offset-4">
@@ -41,6 +48,9 @@ const TrendingBlogs = () => {
                 title={blog.title}
                 image={appwriteService.getFilePreview(blog.featuredImage)}
                 content={blog.content}
+                likes_count={blog.likes_count}
+                liked={blog.liked}
+                view_count={blog.view_count}
               />
             </Link>
           ))
