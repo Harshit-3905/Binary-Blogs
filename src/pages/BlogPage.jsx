@@ -96,7 +96,7 @@ const BlogPage = () => {
         <span>{post.view_count} views</span>
       </div>
       <div className="prose max-w-none mb-8">{parse(post.content)}</div>
-      <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mb-8">
+      <div className="flex items-center justify-between border-t border-b border-black py-4 mb-8">
         <div className="flex items-center">
           <img
             src={`https://ui-avatars.com/api/?name=${post.author}&background=random`}

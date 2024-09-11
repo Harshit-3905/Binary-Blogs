@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import appwriteService from "../appwrite/service";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
+import { PencilIcon, UploadIcon } from "@primer/octicons-react";
 
 const AddBlogPage = ({ post }) => {
   const [title, setTitle] = useState(post?.title || "");
@@ -16,13 +17,24 @@ const AddBlogPage = ({ post }) => {
   const [loading, setLoading] = useState(false);
   const userID = useSelector((state) => state.auth.userData);
   const author = useSelector((state) => state.auth.name);
-  const slugTransform = useCallback((slug) => {
-    if (!post && slug) setSlug(slug.toLowerCase().replace(/\s+/g, "-"));
-  }, []);
   const navigate = useNavigate();
-  const SubmitHandler = async () => {
-    if (title === "" || content === "") {
-      toast.error("Please Fill All The Fields");
+
+  const slugTransform = useCallback(
+    (value) => {
+      if (!post && value) setSlug(value.toLowerCase().replace(/\s+/g, "-"));
+    },
+    [post]
+  );
+
+  useEffect(() => {
+    if (!post && title === "") setSlug("");
+    else slugTransform(title);
+  }, [title, slugTransform, post]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (title.trim() === "" || content.trim() === "") {
+      toast.error("Please fill all the fields");
       return;
     }
     if (title.length > 36) {
@@ -31,212 +43,195 @@ const AddBlogPage = ({ post }) => {
     }
     setLoading(true);
     try {
-      const fileID = await appwriteService.uploadFile(image);
+      const fileID =
+        image instanceof File ? await appwriteService.uploadFile(image) : image;
       const data = {
         title,
         slug,
         content,
-        featuredImage: fileID.$id,
+        featuredImage: fileID instanceof File ? fileID.$id : fileID,
         status,
         userID,
         author,
       };
-      const blog = await appwriteService.createPost(data);
-      if (blog) {
-        toast.success("Blog Added Successfully");
-        navigate("/blog/" + slug);
+      if (post) {
+        const updatedPost = await appwriteService.updatePost(post.$id, data);
+        if (updatedPost) {
+          toast.success("Blog updated successfully");
+          navigate(`/blog/${slug}`);
+        }
       } else {
-        toast.error("Something Went Wrong");
+        const newPost = await appwriteService.createPost(data);
+        if (newPost) {
+          toast.success("Blog created successfully");
+          navigate(`/blog/${slug}`);
+        }
       }
-    } catch (err) {
-      toast.error(err.message);
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred. Please try again.");
     }
     setLoading(false);
   };
-  const updateHandler = async () => {
-    setLoading(true);
-    if (title === "" || slug === "" || content === "" || image === null) {
-      toast.error("Please Fill All The Fields");
-      setLoading(false);
-      return;
-    }
-    try {
-      const data = {
-        title,
-        content,
-        status,
-      };
-      if (image !== post.featuredImage) {
-        await appwriteService.deleteFile(post.featuredImage);
-        const fileID = await appwriteService.uploadFile(image);
-        data.featuredImage = fileID.$id;
-      } else {
-        data.featuredImage = post.featuredImage;
-      }
-      const blog = await appwriteService.updatePost(post.$id, data);
-      if (blog) {
-        toast.success("Blog Updated Successfully");
-        navigate("/blog/" + slug);
-      } else {
-        toast.error("Something Went Wrong");
-      }
-    } catch (err) {
-      toast.error(err.message);
-    }
-    setLoading(false);
-  };
-  useEffect(() => {
-    if (!post && title === "") setSlug("");
-    else slugTransform(title);
-  }, [title, slugTransform]);
 
-  if (userID) {
+  if (!userID) {
     return (
-      <div className="w-[90%] md:w-[70%] min-h-[85vh] flex flex-col justify-center py-10">
-        <label htmlFor="title" className=" ml-2 text-xl">
-          Title :
-        </label>
-        <input
-          type="text"
-          name="title"
-          id="title"
-          value={title}
-          placeholder="Enter Title"
-          className="rounded-2xl p-2 my-3"
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        <label htmlFor="slug" className=" ml-2 text-xl">
-          Slug :
-        </label>
-        <input
-          type="text"
-          name="slug"
-          id="slug"
-          value={slug}
-          placeholder=""
-          className="rounded-2xl p-2 my-3"
-          disabled
-        />
-        <label htmlFor="image" className=" ml-2 text-xl">
-          Image :
-        </label>
-        <input
-          type="file"
-          name="image"
-          id="image"
-          className="p-2 my-3"
-          onChange={(e) => setImage(e.target.files[0])}
-        />
-        <label htmlFor="content" className="my-3 ml-2 text-xl">
-          Content :
-        </label>
-        <Editor
-          id="content"
-          value={content}
-          apiKey={config.tinymceAPIKey}
-          onEditorChange={(value) => setContent(value)}
-          init={{
-            branding: false,
-            height: 500,
-            menubar: true,
-            plugins: [
-              "image",
-              "advlist",
-              "autolink",
-              "lists",
-              "link",
-              "image",
-              "charmap",
-              "preview",
-              "anchor",
-              "searchreplace",
-              "visualblocks",
-              "code",
-              "fullscreen",
-              "insertdatetime",
-              "media",
-              "table",
-              "code",
-              "help",
-              "wordcount",
-              "anchor",
-            ],
-            toolbar:
-              "undo redo | blocks | image | bold italic forecolor underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent |removeformat | help",
-            content_style:
-              "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-          }}
-        />
-        <div className="pt-4">
-          <label htmlFor="status" className="mt-5 ml-2 text-xl">
-            Status :{" "}
+      <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
+        <p className="text-2xl font-semibold text-black">
+          Please Log in to Add Blogs
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto px-4 py-8 w-[95%] md:w-[80%] lg:w-[60%]">
+      <h1 className="text-3xl font-bold mb-8">
+        {post ? "Edit Blog" : "Create New Blog"}
+      </h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter Blog Title"
+            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            required
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="slug"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Slug
+          </label>
+          <input
+            type="text"
+            id="slug"
+            value={slug}
+            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-100"
+            disabled
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="image"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Featured Image
+          </label>
+          <input
+            type="file"
+            id="image"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            className="mt-1 block w-full text-sm text-gray-500
+              file:mr-4 file:py-2 file:px-4
+              file:rounded-full file:border-0
+              file:text-sm file:font-semibold
+              file:bg-indigo-50 file:text-indigo-700
+              hover:file:bg-indigo-100"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="content"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            Content
+          </label>
+          <Editor
+            apiKey={config.tinymceAPIKey}
+            init={{
+              height: 500,
+              menubar: true,
+              plugins: [
+                "advlist",
+                "autolink",
+                "lists",
+                "link",
+                "image",
+                "charmap",
+                "preview",
+                "anchor",
+                "searchreplace",
+                "visualblocks",
+                "code",
+                "fullscreen",
+                "insertdatetime",
+                "media",
+                "table",
+                "code",
+                "help",
+                "wordcount",
+              ],
+              toolbar:
+                "undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help",
+            }}
+            value={content}
+            onEditorChange={(content) => setContent(content)}
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="status"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Status
           </label>
           <select
-            name="status"
             id="status"
-            className="my-3"
             value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-            }}
+            onChange={(e) => setStatus(e.target.value)}
+            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >
             <option value="public">Public</option>
             <option value="private">Private</option>
           </select>
         </div>
         <div className="flex justify-center">
-          {post ? (
-            <button
-              className="bg-green-800 text-white rounded-2xl p-2 my-5 w-24 justify-center"
-              onClick={updateHandler}
-              disabled={loading}
-            >
-              {loading ? "Loading" : "Update"}
-            </button>
-          ) : (
-            <button
-              className="bg-green-800 text-white rounded-2xl p-2 my-5 w-24 justify-center"
-              onClick={SubmitHandler}
-              disabled={loading}
-            >
-              {loading ? "Loading" : "Submit"}
-            </button>
-          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            {loading ? (
+              "Processing..."
+            ) : post ? (
+              <>
+                <PencilIcon size={16} className="mr-2" />
+                Update Blog
+              </>
+            ) : (
+              <>
+                <UploadIcon size={16} className="mr-2" />
+                Publish Blog
+              </>
+            )}
+          </button>
         </div>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss={false}
-          draggable
-          pauseOnHover={false}
-          theme="light"
-        />
-      </div>
-    );
-  } else {
-    return (
-      <div className="text-4xl font-bold h-[85vh] flex items-center justify-center">
-        Login to Add Blogs
-      </div>
-    );
-  }
+      </form>
+      <ToastContainer />
+    </div>
+  );
 };
 
 AddBlogPage.propTypes = {
   post: PropTypes.shape({
     $id: PropTypes.string,
     title: PropTypes.string,
-    slug: PropTypes.string,
-    image: PropTypes.string,
     content: PropTypes.string,
-    status: PropTypes.string,
-    author: PropTypes.string,
     featuredImage: PropTypes.string,
+    status: PropTypes.string,
   }),
 };
 
