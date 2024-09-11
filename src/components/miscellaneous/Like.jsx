@@ -16,7 +16,7 @@ const LikeContainer = (props) => {
   );
 };
 LikeContainer.propTypes = {
-  liked: PropTypes.bool.isRequired,
+  liked: PropTypes.bool,
 };
 
 export default LikeContainer;
