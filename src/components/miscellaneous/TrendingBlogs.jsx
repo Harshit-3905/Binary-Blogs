@@ -41,8 +41,6 @@ const TrendingBlogs = () => {
                 title={blog.title}
                 image={appwriteService.getFilePreview(blog.featuredImage)}
                 content={blog.content}
-                likes_count={blog.likes_count}
-                view_count={blog.view_count}
               />
             </Link>
           ))

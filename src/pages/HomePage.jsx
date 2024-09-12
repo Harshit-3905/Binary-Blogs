@@ -6,8 +6,8 @@ const HomePage = () => {
   return (
     <div className="w-full ">
       <HeroSection />
-      <BlogCategories />
       <TrendingBlogs />
+      <BlogCategories />
     </div>
   );
 };

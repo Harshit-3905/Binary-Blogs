@@ -19,8 +19,9 @@ const BlogCard = (props) => {
           {parse(props.content)}
         </div>
         <div className="flex justify-center items-center gap-2 text-lg">
-          <LikeContainer liked={props.liked} /> {props.likes_count}{" "}
-          <EyeIcon size={24} /> {props.view_count}
+          {props.liked && <LikeContainer liked={props.liked} />}{" "}
+          {props.likes_count}
+          {props.view_count && <EyeIcon size={24} />} {props.view_count}
         </div>
       </div>
     </div>
