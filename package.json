@@ -12,6 +12,7 @@
   "dependencies": {
     "@primer/octicons-react": "^19.8.0",
     "@reduxjs/toolkit": "^2.0.1",
+    "@tailwindcss/typography": "^0.5.15",
     "@tinymce/tinymce-react": "^4.3.2",
     "appwrite": "^13.0.1",
     "html-react-parser": "^5.1.1",

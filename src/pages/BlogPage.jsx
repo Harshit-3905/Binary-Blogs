@@ -7,13 +7,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import LoadingPage from "./LoadingPage";
 import LikeContainer from "../components/miscellaneous/Like.jsx";
-import { EyeIcon } from "@primer/octicons-react";
+import {
+  EyeIcon,
+  CalendarIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@primer/octicons-react";
 
 const BlogPage = () => {
   const slug = useParams().slug;
   const [post, setPost] = useState(null);
   const navigate = useNavigate();
   const userData = useSelector((state) => state.auth.userData);
+
   const likeHandler = async () => {
     try {
       if (userData === null) {
@@ -33,6 +39,7 @@ const BlogPage = () => {
       toast.error(error.message);
     }
   };
+
   const deleteHandler = async () => {
     try {
       await appwriteService.deletePost(slug);
@@ -42,6 +49,7 @@ const BlogPage = () => {
       toast.error(error.message);
     }
   };
+
   useEffect(() => {
     async function getData() {
       try {
@@ -70,59 +78,75 @@ const BlogPage = () => {
     }
     getData();
   }, [slug]);
-  if (post)
-    return (
-      <div className="w-full flex flex-col items-center justify-center">
-        <img
-          src={appwriteService.getFilePreview(post.featuredImage)}
-          alt={slug}
-          className="w-[500px] h-[300px] mt-10"
-        />
-        <h1 className="text-3xl font-bold mt-10 ">{post.title}</h1>
-        <h2 className="text-xl mt-5">
-          - By <strong>{post.author}</strong>
-        </h2>
-        <h2 className="text-xl mt-5">
-          - Published on <strong>{post.published_on}</strong>
-        </h2>
-        <div className="w-[80%] text-xl my-10">{parse(post.content)}</div>
-        <div
-          className="flex justify-center items-center gap-2 text-lg pb-2"
-          onClick={likeHandler}
-        >
-          <LikeContainer liked={post.likes.includes(userData)} />{" "}
-          {post.likes_count} <EyeIcon size={24} /> {post.view_count}
-        </div>
-        {userData && userData === post.userID && (
-          <div className="flex my-10">
-            <Link to={`/blog/${slug}/edit`}>
-              <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Edit
-              </button>
-            </Link>
-            <button
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-10"
-              onClick={deleteHandler}
-            >
-              Delete
-            </button>
-          </div>
-        )}
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss={false}
-          draggable
-          pauseOnHover={false}
-          theme="light"
-        />
+
+  if (!post) return <LoadingPage />;
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <img
+        src={appwriteService.getFilePreview(post.featuredImage)}
+        alt={post.title}
+        className="w-full h-[400px] object-fill rounded-lg shadow-md mb-8"
+      />
+      <h1 className="text-4xl font-bold mb-4 text-gray-800">{post.title}</h1>
+      <div className="flex items-center text-gray-600 mb-6">
+        <CalendarIcon size={16} className="mr-2" />
+        <span className="mr-4">Published on {post.published_on}</span>
+        <EyeIcon size={16} className="mr-2" />
+        <span>{post.view_count} views</span>
       </div>
-    );
-  else return <LoadingPage />;
+      <div className="prose max-w-none mb-8">{parse(post.content)}</div>
+      <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mb-8">
+        <div className="flex items-center">
+          <img
+            src={`https://ui-avatars.com/api/?name=${post.author}&background=random`}
+            alt={post.author}
+            className="w-10 h-10 rounded-full mr-3"
+          />
+          <span className="font-medium text-gray-800">By {post.author}</span>
+        </div>
+        <div className="flex items-center">
+          <button
+            onClick={likeHandler}
+            className="flex items-center mr-4 focus:outline-none"
+          >
+            <LikeContainer liked={post.likes.includes(userData)} />
+            <span className="ml-2">{post.likes_count}</span>
+          </button>
+        </div>
+      </div>
+      {userData && userData === post.userID && (
+        <div className="flex justify-end space-x-4 mb-8">
+          <Link
+            to={`/blog/${slug}/edit`}
+            className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300"
+          >
+            <PencilIcon size={16} className="mr-2" />
+            Edit
+          </Link>
+          <button
+            onClick={deleteHandler}
+            className="flex items-center px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-300"
+          >
+            <TrashIcon size={16} className="mr-2" />
+            Delete
+          </button>
+        </div>
+      )}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable
+        pauseOnHover={false}
+        theme="light"
+      />
+    </div>
+  );
 };
 
 export default BlogPage;
