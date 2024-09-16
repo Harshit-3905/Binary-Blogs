@@ -38,18 +38,6 @@ class AuthService {
       return null;
     }
   }
-  async loginWithGoogle() {
-    try {
-      const userAccount = await this.account.createOAuth2Session(
-        "google",
-        "https://binary-blogs.harshit-joshi.tech/", // Success URL
-        "https://binary-blogs.harshit-joshi.tech/#/auth/login" // Failure URL
-      );
-      return userAccount;
-    } catch (error) {
-      return null;
-    }
-  }
 
   async getCurrentUser() {
     try {

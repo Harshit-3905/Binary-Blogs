@@ -5,7 +5,6 @@ import { useDispatch } from "react-redux";
 import { login } from "../../store/authSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FcGoogle } from "react-icons/fc";
 
 const SignUp = () => {
   const [name, setName] = useState("");
@@ -25,7 +24,7 @@ const SignUp = () => {
     }
     if (password.length < 8) {
       setLoading(false);
-      toast.error("Password must be atleast 8 characters long");
+      toast.error("Password must be at least 8 characters long");
       return;
     }
     const data = { email, password, name };
@@ -37,20 +36,6 @@ const SignUp = () => {
         if (userData) dispatch(login(userData));
         navigate("/");
       }
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const SignWithGoogle = async () => {
-    try {
-      authService.loginWithGoogle().then((userData) => {
-        if (userData) {
-          dispatch(login(userData));
-          navigate("/");
-          toast.success("Signup Successfull!");
-        }
-      });
     } catch (error) {
       toast.error(error.message);
     }
@@ -71,7 +56,7 @@ const SignUp = () => {
             type="text"
             name="name"
             id="name"
-            placeholder="Enter your full name"
+            placeholder="Enter your Full Name"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -88,7 +73,7 @@ const SignUp = () => {
             type="email"
             name="email"
             id="email"
-            placeholder="Enter your email"
+            placeholder="Enter your Email"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -105,7 +90,7 @@ const SignUp = () => {
             type="password"
             name="password"
             id="password"
-            placeholder="Enter your password"
+            placeholder="Enter your Password"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -120,16 +105,9 @@ const SignUp = () => {
           >
             {loading ? "Signing up..." : "Sign Up"}
           </button>
-          <button
-            onClick={SignWithGoogle}
-            className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <FcGoogle className="w-5 h-5 mr-2" />
-            Sign up with Google
-          </button>
         </div>
       </form>
-      <p className="mt-8 text-center text-sm text-gray-600">
+      <p className="mt-8 text-center text-md text-gray-600">
         Already have an account?{" "}
         <Link
           to="/auth/login"
