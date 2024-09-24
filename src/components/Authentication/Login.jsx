@@ -4,8 +4,7 @@ import authService from "../../appwrite/auth";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/authSlice";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -31,6 +30,24 @@ const Login = () => {
       email,
       password,
     };
+    await LoginUser(data);
+    setLoading(false);
+  };
+
+  const GetGuestCredentials = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setEmail("guest@example.com");
+    setPassword("Guest@123");
+    const data = {
+      email: "guest@example.com",
+      password: "Guest@123",
+    };
+    await LoginUser(data);
+    setLoading(false);
+  };
+
+  const LoginUser = async (data) => {
     try {
       const session = await authService.login(data);
       if (session) {
@@ -51,13 +68,6 @@ const Login = () => {
         toast.error(error.message);
       }
     }
-    setLoading(false);
-  };
-
-  const GetGuestCredentials = async (e) => {
-    e.preventDefault();
-    setEmail("guest@example.com");
-    setPassword("Guest@123");
   };
 
   return (
@@ -81,6 +91,7 @@ const Login = () => {
             placeholder="Enter your Email"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
           />
         </div>
         <div>
@@ -98,12 +109,12 @@ const Login = () => {
             placeholder="Enter your Password"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
           />
         </div>
         <div className="flex flex-col space-y-4">
           <button
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            type="submit"
             onClick={LoginHandler}
             disabled={loading}
           >
@@ -112,8 +123,9 @@ const Login = () => {
           <button
             onClick={GetGuestCredentials}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 "
+            disabled={loading}
           >
-            Get Guest Credentials
+            Login With Guest Credentials
           </button>
         </div>
       </form>
@@ -126,7 +138,6 @@ const Login = () => {
           Sign up
         </Link>
       </p>
-      <ToastContainer />
     </div>
   );
 };
