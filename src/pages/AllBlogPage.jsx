@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { BlogCard } from "../components";
 import { BlogCardLoading } from "../components";
 import appwriteService from "../appwrite/service";
-import { Link } from "react-router-dom";
 import { Query } from "appwrite";
 import { useDispatch, useSelector } from "react-redux";
 import { populateBlogs } from "../store/blogSlice.js";
@@ -13,6 +12,7 @@ const AllBlogPage = () => {
   const dispatch = useDispatch();
   const userID = useSelector((state) => state.auth.userData);
   const blogsData = useSelector((state) => state.blogs);
+
   useEffect(() => {
     async function getData() {
       setLoading(true);
@@ -48,16 +48,16 @@ const AllBlogPage = () => {
           </h1>
         ) : (
           blogs.map((blog) => (
-            <Link key={blog.$id} to={`/blog/${blog.$id}`}>
-              <BlogCard
-                title={blog.title}
-                image={appwriteService.getFilePreview(blog.featuredImage)}
-                content={blog.content}
-                likes_count={blog.likes_count}
-                liked={blog.likes.includes(userID)}
-                view_count={blog.view_count}
-              />
-            </Link>
+            <BlogCard
+              key={blog.$id}
+              id={blog.$id}
+              title={blog.title}
+              image={appwriteService.getFilePreview(blog.featuredImage)}
+              content={blog.content}
+              likes_count={blog.likes_count}
+              liked={blog.likes.includes(userID)}
+              view_count={blog.view_count}
+            />
           ))
         )}
       </div>
