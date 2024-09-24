@@ -45,6 +45,7 @@ const TrendingBlogs = () => {
           trendingBlogs.map((blog) => (
             <Link key={blog.$id} to={`/blog/${blog.$id}`}>
               <BlogCard
+                id={blog.$id}
                 title={blog.title}
                 image={appwriteService.getFilePreview(blog.featuredImage)}
                 content={blog.content}
