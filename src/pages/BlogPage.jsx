@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import parse from "html-react-parser";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import LoadingPage from "./LoadingPage";
 import LikeContainer from "../components/miscellaneous/Like.jsx";
 import {
@@ -133,18 +133,6 @@ const BlogPage = () => {
           </button>
         </div>
       )}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss={false}
-        draggable
-        pauseOnHover={false}
-        theme="light"
-      />
     </div>
   );
 };

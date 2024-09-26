@@ -5,7 +5,7 @@ import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import appwriteService from "../appwrite/service";
 import { useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import { PencilIcon, UploadIcon } from "@primer/octicons-react";
 
 const AddBlogPage = ({ post }) => {
@@ -220,7 +220,6 @@ const AddBlogPage = ({ post }) => {
           </button>
         </div>
       </form>
-      <ToastContainer />
     </div>
   );
 };

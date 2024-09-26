@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { logout } from "../../store/authSlice";
 import logo from "../../assets/Logo.webp";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import { useState } from "react";
 import { ThreeBarsIcon, XIcon } from "@primer/octicons-react";
 
@@ -140,18 +140,6 @@ const Header = () => {
           )}
         </ul>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss={false}
-        draggable
-        pauseOnHover={false}
-        theme="light"
-      />
     </>
   );
 };

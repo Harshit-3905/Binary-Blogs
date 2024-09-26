@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import authService from "../../appwrite/auth";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/authSlice";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 
 const SignUp = () => {
   const [name, setName] = useState("");
@@ -116,7 +115,6 @@ const SignUp = () => {
           Log in
         </Link>
       </p>
-      <ToastContainer />
     </div>
   );
 };

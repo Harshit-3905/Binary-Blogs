@@ -1,4 +1,6 @@
-import { useState, useEffect, Suspense } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Suspense, useEffect, useState } from "react";
 import "./App.css";
 import { Header, Footer } from "./components/index";
 import { Outlet } from "react-router-dom";
@@ -21,7 +23,7 @@ function App() {
       setLoading(false);
     };
     checkUser();
-  }, []);
+  }, [dispatch]);
   if (loading)
     return (
       <div className="w-full h-screen bg-[#ADE8F4]">
@@ -37,6 +39,18 @@ function App() {
         </Suspense>
       </div>
       <Footer />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable
+        pauseOnHover={false}
+        theme="light"
+      />
     </div>
   );
 }
