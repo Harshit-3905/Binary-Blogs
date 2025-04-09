@@ -153,8 +153,8 @@ class Service {
     }
   }
 
-  getFilePreview(fileID) {
-    return this.storage.getFilePreview(config.appwriteBucketID, fileID);
+  getFile(fileID) {
+    return this.storage.getFileView(config.appwriteBucketID, fileID);
   }
 
   async addLike(slug, userID) {

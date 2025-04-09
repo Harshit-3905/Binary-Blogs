@@ -47,7 +47,7 @@ const TrendingBlogs = () => {
               <BlogCard
                 id={blog.$id}
                 title={blog.title}
-                image={appwriteService.getFilePreview(blog.featuredImage)}
+                image={appwriteService.getFile(blog.featuredImage)}
                 content={blog.content}
                 likes_count={blog.likes_count}
                 liked={blog.liked}

@@ -84,7 +84,7 @@ const BlogPage = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <img
-        src={appwriteService.getFilePreview(post.featuredImage)}
+        src={appwriteService.getFile(post.featuredImage)}
         alt={post.title}
         className="w-full h-[400px] object-fill rounded-lg shadow-md mb-8"
       />

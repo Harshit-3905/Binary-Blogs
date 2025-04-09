@@ -40,7 +40,7 @@ const MyBlogPage = () => {
             <Link key={blog.$id} to={`/blog/${blog.$id}`}>
               <BlogCard
                 title={blog.title}
-                image={appwriteService.getFilePreview(blog.featuredImage)}
+                image={appwriteService.getFile(blog.featuredImage)}
                 content={blog.content}
                 likes_count={blog.likes_count}
                 liked={blog.likes.includes(userID)}
