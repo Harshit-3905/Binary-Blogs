@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -10,6 +10,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useThemeStore } from "@/store/useThemeStore";
+import { usePreferencesStore } from "@/store/usePreferencesStore";
+import { authService } from "@/services";
 import { Button } from "@/components/ui/button";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { motion } from "framer-motion";
@@ -23,22 +25,11 @@ import { FontSelector } from "@/components/FontSelector";
 export default function SettingsPage() {
   const { isLoggedIn, user } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
+  const { preferences, updatePreferences } = usePreferencesStore();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("appearance");
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
-  const [codeHighlightingEnabled, setCodeHighlightingEnabled] = useState(true);
-  const [wysiwygEnabled, setWysiwygEnabled] = useState(true);
-  const [profileVisibilityEnabled, setProfileVisibilityEnabled] =
-    useState(true);
-  const [newsletterEnabled, setNewsletterEnabled] = useState(false);
-  const [commentNotificationsEnabled, setCommentNotificationsEnabled] =
-    useState(true);
-  const [mentionNotificationsEnabled, setMentionNotificationsEnabled] =
-    useState(true);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -49,32 +40,55 @@ export default function SettingsPage() {
     }
   }, [isLoggedIn, navigate]);
 
-  const handleThemeChange = (newTheme: "light" | "dark") => {
+  /**
+   * Theme clicks update both the local theme store (for immediate CSS
+   * variable application) and the preferences store (for server-side
+   * persistence so the choice survives a reload on another device).
+   */
+  const handleThemeChange = async (newTheme: "light" | "dark") => {
     if (theme === newTheme) return;
     setTheme(newTheme);
-    toast({
-      title: `Theme changed to ${newTheme}`,
-      description: "Your theme preference has been saved.",
-      className: "bg-card border-primary shadow-lg",
-    });
+    try {
+      await updatePreferences({ appearance: { theme: newTheme } });
+      toast({
+        title: `Theme changed to ${newTheme}`,
+        description: "Your theme preference has been saved.",
+      });
+    } catch {
+      setTheme(theme); // revert
+      toast({
+        title: "Failed to save theme",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleToggleSetting = (
-    setter: React.Dispatch<React.SetStateAction<boolean>>,
-    title: string,
-    currentValue: boolean
+  /** Generic boolean-toggle helper for non-appearance preference sections. */
+  const toggleBool = async <
+    S extends "notifications" | "privacy" | "content",
+    K extends keyof typeof preferences[S] & string
+  >(
+    section: S,
+    key: K,
+    label: string
   ) => {
-    setter(!currentValue);
-    toast({
-      title: `${title} ${!currentValue ? "enabled" : "disabled"}`,
-      description: `${title} has been ${
-        !currentValue ? "enabled" : "disabled"
-      } successfully.`,
-      className: "bg-card border-primary shadow-lg",
-    });
+    const next = !preferences[section][key];
+    try {
+      await updatePreferences({
+        [section]: { [key]: next },
+      } as Parameters<typeof updatePreferences>[0]);
+      toast({
+        title: `${label} ${next ? "enabled" : "disabled"}`,
+      });
+    } catch {
+      toast({
+        title: `Failed to update ${label.toLowerCase()}`,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (!currentPassword) {
       toast({
         title: "Missing Current Password",
@@ -83,7 +97,6 @@ export default function SettingsPage() {
       });
       return;
     }
-
     if (!newPassword) {
       toast({
         title: "Missing New Password",
@@ -92,7 +105,6 @@ export default function SettingsPage() {
       });
       return;
     }
-
     if (!confirmPassword) {
       toast({
         title: "Missing Confirmation",
@@ -101,7 +113,6 @@ export default function SettingsPage() {
       });
       return;
     }
-
     if (newPassword !== confirmPassword) {
       toast({
         title: "Passwords Don't Match",
@@ -111,21 +122,22 @@ export default function SettingsPage() {
       return;
     }
 
-    // If we get here, all validations have passed
-    toast({
-      title: "Password Updated",
-      description: "Your password has been updated successfully.",
-      variant: "success",
-    });
-
-    // Clear the form
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-  };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
+    try {
+      await authService.changePassword({ currentPassword, newPassword });
+      toast({
+        title: "Password Updated",
+        description: "Your password has been updated successfully.",
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      toast({
+        title: "Failed to change password",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const MotionButton = motion(Button);
@@ -146,7 +158,7 @@ export default function SettingsPage() {
       <Tabs
         defaultValue="appearance"
         className="space-y-8"
-        onValueChange={handleTabChange}
+        onValueChange={setActiveTab}
       >
         <AnimatedSection>
           <div className="overflow-x-auto pb-2">
@@ -311,19 +323,6 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
-                  <Button
-                    className="mt-4 bg-[var(--accent-color)] text-white hover:bg-background hover:text-[var(--accent-color)] hover:border-[var(--accent-color)] border-2 border-transparent"
-                    onClick={() => {
-                      toast({
-                        title: "Cannot update profile",
-                        description:
-                          "Guest profiles cannot be updated in this demo.",
-                        variant: "destructive",
-                      });
-                    }}
-                  >
-                    Update Profile
-                  </Button>
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
@@ -397,13 +396,9 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="notifications"
-                      checked={notificationsEnabled}
+                      checked={preferences.notifications.email}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setNotificationsEnabled,
-                          "Email notifications",
-                          notificationsEnabled
-                        )
+                        toggleBool("notifications", "email", "Email notifications")
                       }
                     />
                   </div>
@@ -419,12 +414,12 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="comment-notifications"
-                      checked={commentNotificationsEnabled}
+                      checked={preferences.notifications.comments}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setCommentNotificationsEnabled,
-                          "Comment notifications",
-                          commentNotificationsEnabled
+                        toggleBool(
+                          "notifications",
+                          "comments",
+                          "Comment notifications"
                         )
                       }
                     />
@@ -441,12 +436,12 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="mention-notifications"
-                      checked={mentionNotificationsEnabled}
+                      checked={preferences.notifications.mentions}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setMentionNotificationsEnabled,
-                          "Mention notifications",
-                          mentionNotificationsEnabled
+                        toggleBool(
+                          "notifications",
+                          "mentions",
+                          "Mention notifications"
                         )
                       }
                     />
@@ -461,12 +456,12 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="newsletter"
-                      checked={newsletterEnabled}
+                      checked={preferences.notifications.newsletter}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setNewsletterEnabled,
-                          "Newsletter subscription",
-                          newsletterEnabled
+                        toggleBool(
+                          "notifications",
+                          "newsletter",
+                          "Newsletter subscription"
                         )
                       }
                     />
@@ -499,12 +494,12 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="profile-visibility"
-                      checked={profileVisibilityEnabled}
+                      checked={preferences.privacy.profileVisible}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setProfileVisibilityEnabled,
-                          "Profile visibility",
-                          profileVisibilityEnabled
+                        toggleBool(
+                          "privacy",
+                          "profileVisible",
+                          "Profile visibility"
                         )
                       }
                     />
@@ -520,13 +515,9 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="analytics"
-                      checked={analyticsEnabled}
+                      checked={preferences.privacy.analytics}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setAnalyticsEnabled,
-                          "Usage analytics",
-                          analyticsEnabled
-                        )
+                        toggleBool("privacy", "analytics", "Usage analytics")
                       }
                     />
                   </div>
@@ -542,12 +533,12 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="two-factor"
-                      checked={twoFactorEnabled}
+                      checked={preferences.privacy.twoFactor}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setTwoFactorEnabled,
-                          "Two-factor authentication",
-                          twoFactorEnabled
+                        toggleBool(
+                          "privacy",
+                          "twoFactor",
+                          "Two-factor authentication"
                         )
                       }
                     />
@@ -578,13 +569,9 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="auto-save"
-                      checked={autoSaveEnabled}
+                      checked={preferences.content.autoSave}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setAutoSaveEnabled,
-                          "Auto-save drafts",
-                          autoSaveEnabled
-                        )
+                        toggleBool("content", "autoSave", "Auto-save drafts")
                       }
                     />
                   </div>
@@ -600,12 +587,12 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="code-highlighting"
-                      checked={codeHighlightingEnabled}
+                      checked={preferences.content.codeHighlighting}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setCodeHighlightingEnabled,
-                          "Code highlighting",
-                          codeHighlightingEnabled
+                        toggleBool(
+                          "content",
+                          "codeHighlighting",
+                          "Code highlighting"
                         )
                       }
                     />
@@ -620,13 +607,9 @@ export default function SettingsPage() {
                     </div>
                     <Switch
                       id="wysiwyg"
-                      checked={wysiwygEnabled}
+                      checked={preferences.content.wysiwyg}
                       onCheckedChange={() =>
-                        handleToggleSetting(
-                          setWysiwygEnabled,
-                          "WYSIWYG editor",
-                          wysiwygEnabled
-                        )
+                        toggleBool("content", "wysiwyg", "WYSIWYG editor")
                       }
                     />
                   </div>

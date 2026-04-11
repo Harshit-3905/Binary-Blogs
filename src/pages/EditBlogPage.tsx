@@ -1,86 +1,94 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import BlogEditor from "@/components/BlogEditor";
 import { useBlogStore } from "@/store/useBlogStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
+import { blogService } from "@/services";
+import type { Blog } from "@/types/blogTypes";
+import { Loader2 } from "lucide-react";
 
 export default function EditBlogPage() {
   const { id } = useParams<{ id: string }>();
-  const { blogs, updateBlog } = useBlogStore();
+  const { updateBlog } = useBlogStore();
   const { user, isLoggedIn } = useAuthStore();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Find the blog by id
-  const blog = blogs.find((b) => b.id === id);
-
-  // Redirect if not logged in or blog not found
   useEffect(() => {
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
+    if (!id) return;
 
-    if (!blog) {
-      navigate("/blogs");
-      toast({
-        title: "Blog not found",
-        description: "The blog you're trying to edit doesn't exist.",
-        variant: "destructive",
+    let cancelled = false;
+    blogService
+      .getById(id)
+      .then((found) => {
+        if (cancelled) return;
+        if (!found) {
+          toast({
+            title: "Blog not found",
+            description: "The blog you're trying to edit doesn't exist.",
+            variant: "destructive",
+          });
+          navigate("/blogs");
+          return;
+        }
+        if (user?.id !== found.author.id) {
+          toast({
+            title: "Unauthorized",
+            description: "You don't have permission to edit this blog.",
+            variant: "destructive",
+          });
+          navigate(`/blog/${found.slug}`);
+          return;
+        }
+        setBlog(found);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
       });
-      return;
-    }
 
-    // Check if user is the author
-    if (user?.id !== blog.author.id) {
-      navigate(`/blog/${blog.slug}`);
-      toast({
-        title: "Unauthorized",
-        description: "You don't have permission to edit this blog.",
-        variant: "destructive",
-      });
-      return;
-    }
-  }, [isLoggedIn, blog, user, navigate, toast]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isLoggedIn, user, navigate, toast]);
 
-  if (!blog) return null;
-
-  const handleUpdateBlog = (blogData: {
+  const handleUpdateBlog = async (blogData: {
     title: string;
     content: string;
     excerpt: string;
     coverImage: string;
     tags: string[];
   }) => {
+    if (!blog) return;
     setIsSubmitting(true);
 
     try {
-      // Generate slug properly
       const slug = blogData.title
         .toLowerCase()
         .replace(/[^\w\s]/gi, "")
         .replace(/\s+/g, "-");
 
-      // Process the excerpt if not provided and include slug
-      const updatedBlogData = {
+      const updated = await updateBlog(blog.id, {
         ...blogData,
-        slug, // Include the slug in the update
+        slug,
         excerpt:
           blogData.excerpt ||
           blogData.content.replace(/<[^>]*>/g, "").slice(0, 150) + "...",
-      };
-
-      updateBlog(blog.id, updatedBlogData);
+      });
 
       toast({
         title: "Blog updated!",
         description: "Your blog has been successfully updated.",
       });
-
-      // Redirect to the updated blog page
-      navigate(`/blog/${slug}`);
+      navigate(`/blog/${updated.slug}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -91,6 +99,16 @@ export default function EditBlogPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container-custom py-20 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!blog) return null;
 
   return (
     <div className="container-custom py-8">

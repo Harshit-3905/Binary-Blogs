@@ -1,52 +1,49 @@
 import { Bookmark, Heart, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useBlogStore } from "@/store/useBlogStore";
-import { type Blog } from "@/types/blogTypes";
+import { type BlogSummary } from "@/types/blogTypes";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { useState, memo } from "react";
+import { memo } from "react";
 
 interface BlogCardProps {
-  blog: Blog;
+  blog: BlogSummary;
   index?: number;
 }
 
+/**
+ * Derive a coarse difficulty label from the (precomputed) reading time so the
+ * card can show it without fetching the full content.
+ */
+function readingTimeToDifficulty(minutes: number): "Easy" | "Medium" | "Advanced" {
+  if (minutes >= 10) return "Advanced";
+  if (minutes >= 5) return "Medium";
+  return "Easy";
+}
+
 function BlogCardComponent({ blog, index = 0 }: BlogCardProps) {
-  const { toggleBookmark, likeBlog, isLikedByUser } = useBlogStore();
+  const { toggleBookmark, toggleLike, isLikedByUser, isBookmarkedByUser } =
+    useBlogStore();
   const { toast } = useToast();
-  const [isBookmarked, setIsBookmarked] = useState(blog.bookmarked);
+  const isBookmarked = isBookmarkedByUser(blog.id);
 
   // Get main category for the category badge
   const mainCategory = blog.tags[0] || "General";
 
-  // Calculate read time (1 min per 200 words)
-  const readTimeMinutes = Math.max(
-    1,
-    Math.ceil(blog.content.split(/\s+/).length / 200)
-  );
-
-  // Get difficulty level based on content length
-  const getDifficulty = () => {
-    const contentLength = blog.content.length;
-    if (contentLength > 5000) return "Advanced";
-    if (contentLength > 2000) return "Medium";
-    return "Easy";
-  };
-
-  const difficulty = getDifficulty();
+  const readTimeMinutes = blog.readingTime;
+  const difficulty = readingTimeToDifficulty(readTimeMinutes);
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const newStatus = !isBookmarked;
-    setIsBookmarked(newStatus);
-    toggleBookmark(blog.id);
+    const wasBookmarked = isBookmarked;
+    toggleBookmark(blog.id).catch(() => undefined);
 
     toast({
-      title: newStatus ? "Added to bookmarks" : "Removed from bookmarks",
-      description: newStatus
-        ? "The blog has been added to your bookmarks for later reading."
-        : "The blog has been removed from your bookmarks.",
+      title: wasBookmarked ? "Removed from bookmarks" : "Added to bookmarks",
+      description: wasBookmarked
+        ? "The blog has been removed from your bookmarks."
+        : "The blog has been added to your bookmarks for later reading.",
       className: "bg-card border-[var(--accent-color)] shadow-lg",
     });
   };
@@ -55,11 +52,8 @@ function BlogCardComponent({ blog, index = 0 }: BlogCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    // Check current like state before updating
     const wasLiked = isLikedByUser(blog.id);
-
-    // Update in store
-    likeBlog(blog.id);
+    toggleLike(blog.id).catch(() => undefined);
 
     toast({
       title: wasLiked ? "Like removed" : "Blog liked!",

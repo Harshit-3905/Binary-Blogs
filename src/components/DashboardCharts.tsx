@@ -20,7 +20,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import { Blog } from "@/types/blogTypes";
+import { BlogSummary } from "@/types/blogTypes";
 import { motion } from "framer-motion";
 import {
   ArrowUp,
@@ -35,7 +35,7 @@ import { useEffect, useState } from "react";
 import { useBlogStore } from "@/store/useBlogStore";
 
 interface DashboardChartsProps {
-  blogs: Blog[];
+  blogs: BlogSummary[];
 }
 
 export function DashboardCharts({ blogs }: DashboardChartsProps) {
@@ -152,7 +152,7 @@ export function DashboardCharts({ blogs }: DashboardChartsProps) {
 
   const totalComments =
     blogs.length > 0
-      ? blogs.reduce((sum, blog) => sum + blog.comments.length, 0)
+      ? blogs.reduce((sum, blog) => sum + blog.commentCount, 0)
       : 84;
 
   const totalBookmarks =
@@ -186,13 +186,7 @@ export function DashboardCharts({ blogs }: DashboardChartsProps) {
   ];
   const { blogs: storeBlogs } = useBlogStore();
   // Format data for top performing blogs
-  const topBlogData =
-    blogs.length > 0
-      ? blogs
-      : storeBlogs.map((blog) => ({
-          ...blog,
-          comments: Array.isArray(blog.comments) ? blog.comments : [],
-        }));
+  const topBlogData = blogs.length > 0 ? blogs : storeBlogs;
 
   const topBlogs = [...topBlogData]
     .sort((a, b) => b.views - a.views)
@@ -202,7 +196,7 @@ export function DashboardCharts({ blogs }: DashboardChartsProps) {
       title: blog.title,
       views: blog.views,
       likes: blog.likes,
-      comments: blog.comments.length,
+      comments: blog.commentCount,
       slug: blog.slug,
     }));
 

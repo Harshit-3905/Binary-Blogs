@@ -17,7 +17,8 @@ import {
   Search,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useBlogStore } from "@/store/useBlogStore";
+import { blogService } from "@/services";
+import type { BlogSummary } from "@/types/blogTypes";
 import { BlogCard } from "@/components/BlogCard";
 import { AnimatedCodeBlock } from "@/components/AnimatedCodeBlock";
 import { TrendingTopicsSection } from "@/components/home/TrendingTopicsSection";
@@ -27,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
   const { isLoggedIn } = useAuthStore();
-  const { blogs, initializeStore } = useBlogStore();
+  const [featuredBlogs, setFeaturedBlogs] = useState<BlogSummary[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
   const subscribeRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -43,11 +44,17 @@ const Index = () => {
   const scale = useTransform(scrollYProgress, [0, 1], [1, 0.8]);
 
   useEffect(() => {
-    // Initialize store with additional blogs if not already done
-    if (blogs.length <= 3) {
-      initializeStore();
-    }
-  }, [blogs.length, initializeStore]);
+    let cancelled = false;
+    blogService
+      .list({ limit: 3, sort: "popular" })
+      .then((res) => {
+        if (!cancelled) setFeaturedBlogs(res.items);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,7 +77,6 @@ const Index = () => {
     };
   }, [animateStats]);
 
-  const featuredBlogs = blogs.slice(0, 3);
 
   // Custom features with icons
   const features = [

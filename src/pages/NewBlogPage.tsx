@@ -2,22 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BlogEditor from "@/components/BlogEditor";
 import { useBlogStore } from "@/store/useBlogStore";
-import { useAuthStore } from "@/store/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NewBlogPage() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [coverImage, setCoverImage] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [excerpt, setExcerpt] = useState("");
+  const [title] = useState("");
+  const [content] = useState("");
+  const [coverImage] = useState("");
+  const [tags] = useState<string[]>([]);
+  const [excerpt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addBlog } = useBlogStore();
-  const { user } = useAuthStore();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSaveBlog = (blogData: {
+  const handleSaveBlog = async (blogData: {
     title: string;
     content: string;
     coverImage: string;
@@ -36,17 +34,12 @@ export default function NewBlogPage() {
         .replace(/[^\w\s]/gi, "")
         .replace(/\s+/g, "-");
 
-      addBlog({
-        author: {
-          id: user!.id,
-          name: user!.name,
-          avatar: user!.avatar,
-          bio: user!.bio,
-        },
+      const created = await addBlog({
         title: blogData.title,
         slug,
         content: blogData.content,
-        excerpt: blogData.excerpt || blogData.content.substring(0, 150) + "...",
+        excerpt:
+          blogData.excerpt || blogData.content.substring(0, 150) + "...",
         coverImage: blogData.coverImage,
         tags: blogData.tags,
       });
@@ -56,7 +49,7 @@ export default function NewBlogPage() {
         description: "Your blog has been successfully published.",
       });
 
-      navigate(`/blog/${slug}`);
+      navigate(`/blog/${created.slug}`);
     } catch (error) {
       toast({
         title: "Error",

@@ -28,7 +28,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
-  const { login, guestLogin } = useAuthStore();
+  const { login, signup, guestLogin } = useAuthStore();
   const { toast } = useToast();
 
   const [loginForm, setLoginForm] = useState({
@@ -64,7 +64,7 @@ export default function AuthPage() {
     setIsSubmitting(true);
 
     try {
-      const result = login(loginForm.email, loginForm.password);
+      await login(loginForm.email, loginForm.password);
 
       toast({
         title: "Login successful",
@@ -74,7 +74,10 @@ export default function AuthPage() {
     } catch (error) {
       toast({
         title: "Login error",
-        description: "An unexpected error occurred. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -82,33 +85,38 @@ export default function AuthPage() {
     }
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    try {
-      // Validation
-      if (signupForm.password !== signupForm.confirmPassword) {
-        toast({
-          title: "Passwords don't match",
-          description: "Please ensure both passwords match.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // In a real app, this would call an API
-      // For demo purposes, we'll just show a success message and redirect
+    if (signupForm.password !== signupForm.confirmPassword) {
       toast({
-        title: "Account created!",
-        description: "Please login with your new credentials.",
+        title: "Passwords don't match",
+        description: "Please ensure both passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signup({
+        name: signupForm.name,
+        email: signupForm.email,
+        password: signupForm.password,
       });
 
-      navigate("/login");
+      toast({
+        title: "Account created!",
+        description: "Welcome to Binary Blogs.",
+      });
+      navigate("/");
     } catch (error) {
       toast({
         title: "Signup error",
-        description: "An unexpected error occurred. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -116,8 +124,8 @@ export default function AuthPage() {
     }
   };
 
-  const handleGuestLogin = () => {
-    guestLogin();
+  const handleGuestLogin = async () => {
+    await guestLogin();
     toast({
       title: "Guest login successful",
       description: "You are now signed in as a guest user.",

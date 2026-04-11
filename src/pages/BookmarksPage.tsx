@@ -3,85 +3,75 @@ import { useBlogStore } from "@/store/useBlogStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import { BlogCard } from "@/components/BlogCard";
-import { Bookmark, BookmarkPlus, Search, Filter, X } from "lucide-react";
+import { Bookmark, BookmarkPlus, Search, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { TagFilter } from "@/components/TagFilter";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-
-// Featured tags that should be prioritized (matching the ones in TagFilter)
-const FEATURED_TAGS = [
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Vue",
-  "Next.js",
-  "Node.js",
-  "CSS",
-  "HTML",
-  "Python",
-  "Frontend",
-  "Backend",
-];
+import { blogService, tagService } from "@/services";
+import type { BlogSummary } from "@/types/blogTypes";
 
 export default function BookmarksPage() {
-  const { blogs, bookmarkedBlogs, toggleBookmark } = useBlogStore();
-  const { isLoggedIn, user } = useAuthStore();
+  const { bookmarkedBlogIds } = useBlogStore();
+  const { isLoggedIn } = useAuthStore();
   const navigate = useNavigate();
+  const [bookmarks, setBookmarks] = useState<BlogSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [bookmarkedBlogsList, setBookmarkedBlogsList] = useState(
-    blogs.filter((blog) => blog.bookmarked || bookmarkedBlogs.includes(blog.id))
-  );
-
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [featuredTags, setFeaturedTags] = useState<string[]>([]);
 
-  // Add some demo bookmarks for better UX if there are none
   useEffect(() => {
-    if (isLoggedIn && bookmarkedBlogs.length === 0 && blogs.length > 0) {
-      // Add first two blogs as demo bookmarks
-      const demoBookmarkIds = [blogs[0].id, blogs[1].id].filter(
-        (id) => !bookmarkedBlogs.includes(id)
-      );
-      demoBookmarkIds.forEach((id) => toggleBookmark(id));
-    }
-  }, [isLoggedIn, blogs, bookmarkedBlogs, toggleBookmark]);
-
-  // Update bookmarkedBlogsList when blogs or bookmarkedBlogs change
-  useEffect(() => {
-    setBookmarkedBlogsList(
-      blogs.filter(
-        (blog) => blog.bookmarked || bookmarkedBlogs.includes(blog.id)
-      )
-    );
-  }, [blogs, bookmarkedBlogs]);
+    let cancelled = false;
+    tagService
+      .listFeatured()
+      .then((tags) => {
+        if (!cancelled) setFeaturedTags(tags);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!isLoggedIn) {
-      navigate("/login");
-    }
+    if (!isLoggedIn) navigate("/login");
   }, [isLoggedIn, navigate]);
 
-  // Filter bookmarked blogs based on search and tags
-  const filteredBookmarks = bookmarkedBlogsList.filter((blog) => {
+  // Fetch bookmarked blogs from the server whenever the set of bookmarks
+  // changes (optimistic toggles in the store trigger a re-fetch for the
+  // authoritative list).
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let cancelled = false;
+    setIsLoading(true);
+    blogService
+      .listBookmarked({ limit: 50 })
+      .then((res) => {
+        if (!cancelled) setBookmarks(res.items);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, bookmarkedBlogIds.length]);
+
+  // Client-side search/tag filter on the already-fetched bookmarks (the
+  // bookmark list is typically small, so pagination on top of it isn't worth
+  // the complexity).
+  const filteredBookmarks = bookmarks.filter((blog) => {
     const matchesSearch =
       searchTerm === "" ||
       blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       blog.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesTags =
       selectedTags.length === 0 ||
       selectedTags.every((tag) => blog.tags.includes(tag));
-
     return matchesSearch && matchesTags;
   });
 
@@ -91,18 +81,11 @@ export default function BookmarksPage() {
     );
   };
 
-  const clearFilters = () => {
-    setSelectedTags([]);
-    setSearchTerm("");
-  };
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.1 },
     },
   };
 
@@ -136,7 +119,7 @@ export default function BookmarksPage() {
 
         <div className="hidden md:block">
           <TagFilter
-            tags={FEATURED_TAGS}
+            tags={featuredTags}
             selectedTags={selectedTags}
             onTagSelect={handleTagSelect}
           />
@@ -168,7 +151,11 @@ export default function BookmarksPage() {
         )}
       </AnimatedSection>
 
-      {filteredBookmarks.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredBookmarks.length > 0 ? (
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           variants={containerVariants}

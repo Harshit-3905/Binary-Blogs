@@ -25,55 +25,61 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
+import { blogService } from "@/services";
+import type { Blog, BlogSummary } from "@/types/blogTypes";
 
 export default function BlogDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const {
-    blogs,
     toggleBookmark,
-    likeBlog,
-    addComment,
-    incrementView,
+    toggleLike,
     isLikedByUser,
+    isBookmarkedByUser,
   } = useBlogStore();
   const { user, isLoggedIn } = useAuthStore();
   const { toast } = useToast();
   const [commentText, setCommentText] = useState("");
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showCommentForm, setShowCommentForm] = useState(false);
-  const [blog, setBlog] = useState(null);
-  const [relatedBlogs, setRelatedBlogs] = useState([]);
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [relatedBlogs, setRelatedBlogs] = useState<BlogSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Reference to content div for scrolling
   const contentRef = useRef<HTMLDivElement>(null);
   const viewIncremented = useRef(false);
 
+  // Fetch the blog directly by slug so we always hit it regardless of what
+  // the paginated listing currently holds.
   useEffect(() => {
-    // Find the blog by slug
-    const foundBlog = blogs.find((b) => b.slug === slug);
-    setBlog(foundBlog);
+    if (!slug) return;
+    let cancelled = false;
+    setIsLoading(true);
 
-    // Get related blogs (same tags)
-    if (foundBlog) {
-      const related = blogs
-        .filter(
-          (b) =>
-            b.id !== foundBlog.id &&
-            b.tags.some((tag) => foundBlog.tags.includes(tag))
-        )
-        .slice(0, 3);
-      setRelatedBlogs(related);
-    }
+    blogService
+      .getBySlug(slug)
+      .then(async (found) => {
+        if (cancelled) return;
+        setBlog(found);
+        if (found) {
+          const related = await blogService
+            .list({ tags: found.tags, limit: 4 })
+            .then((r) =>
+              r.items.filter((b) => b.id !== found.id).slice(0, 3)
+            )
+            .catch(() => []);
+          if (!cancelled) setRelatedBlogs(related);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-    // Small delay to prevent immediate "not found" flash
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [blogs, slug]);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (!blog) return;
@@ -89,21 +95,13 @@ export default function BlogDetailPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [blog]);
 
-  // Add after blog is found
+  // Fire-and-forget view increment once per mount.
   useEffect(() => {
     if (blog && !viewIncremented.current) {
       viewIncremented.current = true;
-
-      incrementView(blog.id);
+      blogService.incrementView(blog.id).catch(() => undefined);
     }
-  }, [blog, incrementView]);
-
-  // Calculate reading time
-  const calculateReadingTime = (content: string): number => {
-    const wordsPerMinute = 200;
-    const wordCount = content.split(/\s+/).length;
-    return Math.ceil(wordCount / wordsPerMinute);
-  };
+  }, [blog]);
 
   // Scroll to comments section
   const scrollToComments = () => {
@@ -153,20 +151,44 @@ export default function BlogDetailPage() {
       return;
     }
 
-    likeBlog(blog.id);
+    const wasLiked = isLikedByUser(blog.id);
+    // Optimistic: update local blog count so the UI reflects the change.
+    setBlog((b) => (b ? { ...b, likes: b.likes + (wasLiked ? -1 : 1) } : b));
+    toggleLike(blog.id).catch(() => {
+      setBlog((b) => (b ? { ...b, likes: b.likes + (wasLiked ? 1 : -1) } : b));
+      toast({
+        title: "Failed to update like",
+        variant: "destructive",
+      });
+      return;
+    });
     toast({
-      title: isLikedByUser(blog.id) ? "Blog unliked" : "Blog liked!",
-      description: isLikedByUser(blog.id)
+      title: wasLiked ? "Blog unliked" : "Blog liked!",
+      description: wasLiked
         ? "You have unliked this blog."
         : "Thank you for your appreciation.",
     });
   };
 
   const handleBookmark = () => {
-    toggleBookmark(blog.id);
+    if (!isLoggedIn) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to bookmark this blog.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const wasBookmarked = isBookmarkedByUser(blog.id);
+    toggleBookmark(blog.id).catch(() =>
+      toast({
+        title: "Failed to update bookmark",
+        variant: "destructive",
+      })
+    );
     toast({
-      title: blog.bookmarked ? "Removed from bookmarks" : "Added to bookmarks",
-      description: blog.bookmarked
+      title: wasBookmarked ? "Removed from bookmarks" : "Added to bookmarks",
+      description: wasBookmarked
         ? "The blog has been removed from your bookmarks."
         : "The blog has been added to your bookmarks for later reading.",
     });
@@ -201,18 +223,25 @@ export default function BlogDetailPage() {
       return;
     }
 
-    addComment(blog.id, {
-      userId: user!.id,
-      userName: user!.name,
-      userAvatar: user!.avatar,
-      content: commentText,
-    });
-
-    setCommentText("");
-    toast({
-      title: "Comment added",
-      description: "Your comment has been posted successfully.",
-    });
+    blogService
+      .addComment(blog.id, { content: commentText })
+      .then((comment) => {
+        setBlog((b) =>
+          b ? { ...b, comments: [...b.comments, comment] } : b
+        );
+        setCommentText("");
+        toast({
+          title: "Comment added",
+          description: "Your comment has been posted successfully.",
+        });
+      })
+      .catch(() =>
+        toast({
+          title: "Failed to post comment",
+          description: "Please try again.",
+          variant: "destructive",
+        })
+      );
   };
 
   // Animation variants
@@ -226,7 +255,7 @@ export default function BlogDetailPage() {
   };
 
   // Get reading time
-  const readingTime = blog.content ? calculateReadingTime(blog.content) : 0;
+  const readingTime = blog.readingTime;
 
   return (
     <div className="min-h-screen relative pb-12">
@@ -293,7 +322,7 @@ export default function BlogDetailPage() {
               >
                 <Bookmark
                   className={`h-4 w-4 ${
-                    blog.bookmarked
+                    isBookmarkedByUser(blog.id)
                       ? "fill-[var(--accent-color)] text-[var(--accent-color)]"
                       : ""
                   }`}
@@ -400,12 +429,12 @@ export default function BlogDetailPage() {
                   >
                     <Bookmark
                       className={`h-4 w-4 ${
-                        blog.bookmarked
+                        isBookmarkedByUser(blog.id)
                           ? "fill-[var(--accent-color)] text-[var(--accent-color)]"
                           : ""
                       }`}
                     />
-                    <span>{blog.bookmarked ? "Saved" : "Save"}</span>
+                    <span>{isBookmarkedByUser(blog.id) ? "Saved" : "Save"}</span>
                   </Button>
                 </motion.div>
                 <motion.div
@@ -692,13 +721,13 @@ export default function BlogDetailPage() {
                 >
                   <Bookmark
                     className={`h-4 w-4 ${
-                      blog.bookmarked
+                      isBookmarkedByUser(blog.id)
                         ? "fill-[var(--accent-color)] text-[var(--accent-color)]"
                         : ""
                     }`}
                   />
                   <span className="text-sm ml-1">
-                    {blog.bookmarked ? "Saved" : "Save"}
+                    {isBookmarkedByUser(blog.id) ? "Saved" : "Save"}
                   </span>
                 </Button>
               </motion.div>

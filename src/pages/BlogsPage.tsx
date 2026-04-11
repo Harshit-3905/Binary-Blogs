@@ -1,155 +1,91 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { BlogCard } from "@/components/BlogCard";
 import { TagFilter } from "@/components/TagFilter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useBlogStore } from "@/store/useBlogStore";
-import { Search, Filter, Loader2, RefreshCw } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { useLocation } from "react-router-dom";
+import { Search, Filter, Loader2 } from "lucide-react";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { tagService } from "@/services";
 
-// Featured tags that should be prioritized (matching the ones in TagFilter)
-const FEATURED_TAGS = [
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Vue",
-  "Next.js",
-  "Node.js",
-  "CSS",
-  "HTML",
-  "Python",
-  "Frontend",
-  "Backend",
-];
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function BlogsPage() {
-  const { blogs, initializeStore } = useBlogStore();
+  const { blogs, hasMore, isLoading, fetchBlogs } = useBlogStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [visibleBlogs, setVisibleBlogs] = useState(6);
-  const [isLoading, setIsLoading] = useState(false);
-  const location = useLocation();
-  const observerTarget = useRef(null);
+  const [featuredTags, setFeaturedTags] = useState<string[]>([]);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
 
-  // Initialize store with additional blogs if not already done
+  // Featured tag list comes from the backend so editors can curate it without
+  // a frontend release.
   useEffect(() => {
-    if (blogs.length <= 3) {
-      initializeStore();
-    }
-  }, [blogs.length, initializeStore]);
+    let cancelled = false;
+    tagService
+      .listFeatured()
+      .then((tags) => {
+        if (!cancelled) setFeaturedTags(tags);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  // Memoize filtered blogs to prevent unnecessary recalculations
-  const filteredBlogs = useMemo(() => {
-    let filtered = blogs;
-
-    // Filter by search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (blog) =>
-          blog.title.toLowerCase().includes(term) ||
-          blog.excerpt.toLowerCase().includes(term) ||
-          blog.tags.some((tag) => tag.toLowerCase().includes(term))
-      );
-    }
-
-    // Filter by selected tags (blog must have ALL selected tags)
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter((blog) =>
-        selectedTags.every((tag) => blog.tags.includes(tag))
-      );
-    }
-
-    return filtered;
-  }, [blogs, searchTerm, selectedTags]);
-
-  // Reset visible blogs when filters change
+  // Whenever the filters change, reset to page 1 and re-fetch from the server.
+  // `searchTerm` is debounced so we don't hammer the API on every keystroke.
   useEffect(() => {
-    setVisibleBlogs(6);
-  }, [searchTerm, selectedTags]);
+    const handle = setTimeout(() => {
+      fetchBlogs({
+        reset: true,
+        filters: {
+          search: searchTerm || undefined,
+          tags: selectedTags.length ? selectedTags : undefined,
+        },
+      });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(handle);
+  }, [searchTerm, selectedTags, fetchBlogs]);
 
-  // Toggle tag selection
   const handleTagSelect = useCallback((tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   }, []);
 
-  // Clear all filters
   const clearFilters = useCallback(() => {
     setSelectedTags([]);
     setSearchTerm("");
   }, []);
 
-  // Load more blogs with a simulated delay for UX
-  const loadMoreBlogs = useCallback(() => {
-    if (visibleBlogs < filteredBlogs.length && !isLoading) {
-      setIsLoading(true);
-
-      // Simulate network delay
-      setTimeout(() => {
-        setVisibleBlogs((prev) => Math.min(prev + 6, filteredBlogs.length));
-        setIsLoading(false);
-      }, 800);
-    }
-  }, [filteredBlogs.length, visibleBlogs, isLoading]);
-
-  // Setup intersection observer for infinite scroll
+  // Infinite scroll: fetch the next page whenever the sentinel becomes visible.
   useEffect(() => {
+    if (!hasMore || isLoading) return;
+    const target = observerTarget.current;
+    if (!target) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          loadMoreBlogs();
+          fetchBlogs();
         }
       },
       { threshold: 0.1 }
     );
 
-    const currentObserverTarget = observerTarget.current;
-
-    if (currentObserverTarget) {
-      observer.observe(currentObserverTarget);
-    }
-
-    return () => {
-      if (currentObserverTarget) {
-        observer.unobserve(currentObserverTarget);
-      }
-    };
-  }, [loadMoreBlogs]);
-
-  const handleRefresh = useCallback(() => {
-    initializeStore();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-  }, [initializeStore]);
+    observer.observe(target);
+    return () => observer.unobserve(target);
+  }, [hasMore, isLoading, fetchBlogs, blogs.length]);
 
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
+      transition: { staggerChildren: 0.1 },
     },
   };
-
-  // Memoize the visible blogs slice to prevent unnecessary re-renders
-  const visibleBlogsList = useMemo(() => {
-    return filteredBlogs.slice(0, visibleBlogs);
-  }, [filteredBlogs, visibleBlogs]);
 
   return (
     <div className="container-custom py-8 md:py-12">
@@ -181,7 +117,7 @@ export default function BlogsPage() {
       <AnimatedSection delay={0.2}>
         <div className="hidden md:block">
           <TagFilter
-            tags={FEATURED_TAGS}
+            tags={featuredTags}
             selectedTags={selectedTags}
             onTagSelect={handleTagSelect}
           />
@@ -213,7 +149,7 @@ export default function BlogsPage() {
         )}
       </AnimatedSection>
 
-      {filteredBlogs.length > 0 ? (
+      {blogs.length > 0 ? (
         <>
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -222,13 +158,13 @@ export default function BlogsPage() {
             animate="visible"
           >
             <AnimatePresence>
-              {visibleBlogsList.map((blog, index) => (
+              {blogs.map((blog, index) => (
                 <BlogCard key={blog.id} blog={blog} index={index} />
               ))}
             </AnimatePresence>
           </motion.div>
 
-          {visibleBlogs < filteredBlogs.length && (
+          {(hasMore || isLoading) && (
             <div
               ref={observerTarget}
               className="h-24 flex items-center justify-center my-4"
@@ -242,47 +178,23 @@ export default function BlogsPage() {
                 </div>
               ) : (
                 <div className="flex space-x-2">
-                  <motion.div
-                    className="w-2 h-2 bg-primary rounded-full"
-                    animate={{
-                      y: [0, -8, 0],
-                      opacity: [0.5, 1, 0.5],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: 0,
-                    }}
-                  />
-                  <motion.div
-                    className="w-2 h-2 bg-primary rounded-full"
-                    animate={{
-                      y: [0, -8, 0],
-                      opacity: [0.5, 1, 0.5],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: 0.2,
-                    }}
-                  />
-                  <motion.div
-                    className="w-2 h-2 bg-primary rounded-full"
-                    animate={{
-                      y: [0, -8, 0],
-                      opacity: [0.5, 1, 0.5],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: 0.4,
-                    }}
-                  />
+                  {[0, 0.2, 0.4].map((delay, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-2 h-2 bg-primary rounded-full"
+                      animate={{ y: [0, -8, 0], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay }}
+                    />
+                  ))}
                 </div>
               )}
             </div>
           )}
         </>
+      ) : isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       ) : (
         <AnimatedSection delay={0.3}>
           <div className="text-center py-12 border rounded-lg bg-background">

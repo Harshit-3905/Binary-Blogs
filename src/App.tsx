@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { useThemeStore } from "@/store/useThemeStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { usePreferencesStore } from "@/store/usePreferencesStore";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -27,19 +29,37 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { theme, selectedColorName, accentColor, fontFamily, setColorScheme, setFontFamily } = useThemeStore();
+  const { isLoggedIn, restoreSession } = useAuthStore();
+  const { loadPreferences, reset: resetPreferences } = usePreferencesStore();
 
   // Apply theme, accent color, and font family from store
   useEffect(() => {
     // Apply explicit theme choice
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
-    
+
     // Apply color scheme (this will set all necessary CSS variables)
     setColorScheme(selectedColorName);
-    
+
     // Apply font family
     setFontFamily(fontFamily);
   }, [theme, selectedColorName, accentColor, fontFamily, setColorScheme, setFontFamily]);
+
+  // On boot, ask the backend whether the auth cookie is still valid. If it
+  // is, the store is populated; if not, the stale persisted user is cleared.
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
+
+  // Preferences are server-backed, so (re-)load them whenever auth state
+  // changes. On logout we reset to the default fixture.
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadPreferences().catch(() => undefined);
+    } else {
+      resetPreferences();
+    }
+  }, [isLoggedIn, loadPreferences, resetPreferences]);
 
   return (
     <QueryClientProvider client={queryClient}>
