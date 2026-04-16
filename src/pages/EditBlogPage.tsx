@@ -80,8 +80,7 @@ export default function EditBlogPage() {
         ...blogData,
         slug,
         excerpt:
-          blogData.excerpt ||
-          blogData.content.replace(/<[^>]*>/g, "").slice(0, 150) + "...",
+          blogData.excerpt || blogData.content.slice(0, 150) + "...",
       });
 
       toast({

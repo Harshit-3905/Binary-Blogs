@@ -1,20 +1,17 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Bold,
   Italic,
   ListOrdered,
+  List,
   Image as ImageIcon,
   Code,
   Heading1,
   Heading2,
   Heading3,
   Quote,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Undo,
-  Redo,
-  Table,
+  Link,
+  Minus,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -24,6 +21,7 @@ import { Switch } from "./ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropImageUpload } from "@/components/DragDropImageUpload";
 import { Textarea } from "@/components/ui/textarea";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface BlogEditorProps {
@@ -51,7 +49,6 @@ export default function BlogEditor({
   onSave,
   isSubmitting = false,
 }: BlogEditorProps) {
-  // Basic blog state
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [tags, setTags] = useState<string[]>(initialTags);
@@ -62,46 +59,75 @@ export default function BlogEditor({
   const { toast } = useToast();
   const { isLoggedIn } = useAuthStore();
 
-  // Ref for the editor
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
-  // Handle basic editor commands
-  const execCommand = (command: string, value: string = "") => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      editorRef.current.focus();
-    }
-  };
+  /**
+   * Insert markdown syntax around the current selection (or at the cursor).
+   * For "wrap" operations (bold, italic, inline code) it wraps the selected
+   * text.  For "line-prefix" operations (headings, quote, list) it prepends
+   * the prefix at the start of the current line.
+   */
+  const insertMarkdown = useCallback(
+    (before: string, after: string = "") => {
+      const textarea = editorRef.current;
+      if (!textarea) return;
 
-  // Editor action helpers
-  const handleBold = () => execCommand("bold");
-  const handleItalic = () => execCommand("italic");
-  const handleCode = () => {
-    const selection = window.getSelection();
-    if (selection && selection.toString()) {
-      const code = `<pre><code>${selection.toString()}</code></pre>`;
-      document.execCommand("insertHTML", false, code);
-    } else {
-      const code = `<pre><code>Your code here</code></pre>`;
-      document.execCommand("insertHTML", false, code);
-    }
-  };
-  const handleH1 = () => execCommand("formatBlock", "<h1>");
-  const handleH2 = () => execCommand("formatBlock", "<h2>");
-  const handleH3 = () => execCommand("formatBlock", "<h3>");
-  const handleQuote = () => execCommand("formatBlock", "<blockquote>");
-  const handleAlignLeft = () => execCommand("justifyLeft");
-  const handleAlignCenter = () => execCommand("justifyCenter");
-  const handleAlignRight = () => execCommand("justifyRight");
-  const handleUndo = () => execCommand("undo");
-  const handleRedo = () => execCommand("redo");
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = content.substring(start, end);
 
-  // Track editor content changes
-  const handleEditorChange = () => {
-    if (editorRef.current) {
-      setContent(editorRef.current.innerHTML);
-    }
-  };
+      const replacement = before + selected + after;
+      const newContent =
+        content.substring(0, start) + replacement + content.substring(end);
+
+      setContent(newContent);
+
+      // Restore cursor position after React re-renders the textarea value
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const cursorPos = start + before.length + selected.length;
+        textarea.setSelectionRange(cursorPos, cursorPos);
+      });
+    },
+    [content]
+  );
+
+  /** Insert a prefix at the beginning of the current line. */
+  const insertLinePrefix = useCallback(
+    (prefix: string) => {
+      const textarea = editorRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      // Walk backwards to find the start of the current line
+      const lineStart = content.lastIndexOf("\n", start - 1) + 1;
+      const newContent =
+        content.substring(0, lineStart) + prefix + content.substring(lineStart);
+
+      setContent(newContent);
+
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const cursorPos = start + prefix.length;
+        textarea.setSelectionRange(cursorPos, cursorPos);
+      });
+    },
+    [content]
+  );
+
+  const handleBold = () => insertMarkdown("**", "**");
+  const handleItalic = () => insertMarkdown("*", "*");
+  const handleInlineCode = () => insertMarkdown("`", "`");
+  const handleCodeBlock = () => insertMarkdown("```\n", "\n```");
+  const handleH1 = () => insertLinePrefix("# ");
+  const handleH2 = () => insertLinePrefix("## ");
+  const handleH3 = () => insertLinePrefix("### ");
+  const handleQuote = () => insertLinePrefix("> ");
+  const handleUnorderedList = () => insertLinePrefix("- ");
+  const handleOrderedList = () => insertLinePrefix("1. ");
+  const handleLink = () => insertMarkdown("[", "](url)");
+  const handleImage = () => insertMarkdown("![alt](", ")");
+  const handleHorizontalRule = () => insertMarkdown("\n---\n");
 
   // Handle tags
   const addTag = () => {
@@ -119,7 +145,6 @@ export default function BlogEditor({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent multiple submissions
     if (isSubmitting) return;
 
     if (!title.trim()) {
@@ -131,7 +156,7 @@ export default function BlogEditor({
       return;
     }
 
-    if (!content.trim() || content === "<p><br></p>") {
+    if (!content.trim()) {
       toast({
         title: "Content Required",
         description: "Please add some content to your blog post.",
@@ -159,15 +184,13 @@ export default function BlogEditor({
       return;
     }
 
-    // Use onSave prop if provided
     if (onSave) {
       onSave({
         title,
         content,
         coverImage,
-        tags: tags,
-        excerpt:
-          excerpt || content.replace(/<[^>]*>/g, "").slice(0, 150) + "...",
+        tags,
+        excerpt: excerpt || content.slice(0, 150) + "...",
       });
     }
   };
@@ -182,21 +205,13 @@ export default function BlogEditor({
     }
   }, [excerpt]);
 
-  // Initialize contentEditable with initialContent
-  useEffect(() => {
-    if (editorRef.current) {
-      // Only set if the div is empty or if we have initialContent
-      if (
-        !editorRef.current.innerHTML ||
-        editorRef.current.innerHTML === "<br>" ||
-        initialContent
-      ) {
-        editorRef.current.innerHTML = initialContent || "";
-        // Make sure content state is updated
-        setContent(initialContent || "");
-      }
+  /** Handle Tab key inside the editor to insert spaces instead of moving focus. */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      insertMarkdown("  ");
     }
-  }, [initialContent]);
+  };
 
   return (
     <div className="editor-container max-w-5xl mx-auto">
@@ -308,140 +323,77 @@ export default function BlogEditor({
             <Label htmlFor="live-preview">Live Preview</Label>
           </div>
 
-          {/* Editor Controls */}
+          {/* Markdown Toolbar */}
           <div className="bg-muted rounded-t-md p-2 flex flex-wrap gap-1 border border-[var(--accent-color)]/20 border-b-0">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleBold}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleBold} title="Bold" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Bold className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleItalic}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleItalic} title="Italic" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Italic className="h-4 w-4" />
             </Button>
             <Separator orientation="vertical" className="h-6 mx-1" />
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleH1}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleH1} title="Heading 1" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Heading1 className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleH2}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleH2} title="Heading 2" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Heading2 className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleH3}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleH3} title="Heading 3" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Heading3 className="h-4 w-4" />
             </Button>
             <Separator orientation="vertical" className="h-6 mx-1" />
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleCode}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleInlineCode} title="Inline Code" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Code className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleQuote}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={handleCodeBlock} title="Code Block" className="h-8 px-2 hover:bg-[var(--accent-color)]/10 text-xs font-mono">
+              {"</>"}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={handleQuote} title="Blockquote" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
               <Quote className="h-4 w-4" />
             </Button>
             <Separator orientation="vertical" className="h-6 mx-1" />
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleAlignLeft}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
-              <AlignLeft className="h-4 w-4" />
+            <Button type="button" size="sm" variant="ghost" onClick={handleUnorderedList} title="Bullet List" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
+              <List className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleAlignCenter}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
-              <AlignCenter className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleAlignRight}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
-              <AlignRight className="h-4 w-4" />
+            <Button type="button" size="sm" variant="ghost" onClick={handleOrderedList} title="Numbered List" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
+              <ListOrdered className="h-4 w-4" />
             </Button>
             <Separator orientation="vertical" className="h-6 mx-1" />
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleUndo}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
-              <Undo className="h-4 w-4" />
+            <Button type="button" size="sm" variant="ghost" onClick={handleLink} title="Link" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
+              <Link className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleRedo}
-              className="h-8 px-2 hover:bg-[var(--accent-color)]/10"
-            >
-              <Redo className="h-4 w-4" />
+            <Button type="button" size="sm" variant="ghost" onClick={handleImage} title="Image" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={handleHorizontalRule} title="Horizontal Rule" className="h-8 px-2 hover:bg-[var(--accent-color)]/10">
+              <Minus className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Editor Area */}
           <div className="flex flex-col lg:flex-row gap-4">
-            <div
-              className={`w-full ${isLivePreview ? "lg:w-1/2" : "lg:w-full"}`}
-            >
-              <div
+            <div className={`w-full ${isLivePreview ? "lg:w-1/2" : "lg:w-full"}`}>
+              <textarea
                 ref={editorRef}
-                contentEditable
-                onInput={handleEditorChange}
-                className="min-h-[500px] p-4 border border-[var(--accent-color)]/20 rounded-b-md focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] prose prose-sm max-w-none dark:prose-invert"
-              ></div>
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Write your blog content in Markdown..."
+                className="min-h-[500px] w-full p-4 border border-[var(--accent-color)]/20 rounded-b-md focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] font-mono text-sm bg-background text-foreground resize-y"
+              />
             </div>
 
-            {/* Live Preview */}
+            {/* Live Preview — rendered through the same MarkdownRenderer used on BlogDetailPage */}
             {isLivePreview && (
               <div className="w-full lg:w-1/2">
-                <div className="border border-[var(--accent-color)]/20 rounded-b-md p-4 min-h-[500px] prose prose-sm max-w-none dark:prose-invert bg-gray-50 dark:bg-gray-900/50">
-                  <div dangerouslySetInnerHTML={{ __html: content }} />
+                <div className="border border-[var(--accent-color)]/20 rounded-b-md p-4 min-h-[500px] max-w-none bg-gray-50 dark:bg-gray-900/50 overflow-y-auto">
+                  {content ? (
+                    <MarkdownRenderer content={content} />
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      Preview will appear here...
+                    </p>
+                  )}
                 </div>
               </div>
             )}

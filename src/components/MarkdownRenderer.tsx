@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import Prism from "prismjs";
 import "./prism-theme.css";
 import "prismjs/components/prism-markup";
@@ -26,310 +29,302 @@ import "prismjs/components/prism-docker";
 import "prismjs/components/prism-git";
 import "./markdown-styles.css";
 
-// Add proper type definition for the window object with Prism
-declare global {
-  interface Window {
-    Prism: typeof Prism;
-  }
+/** Map common aliases to Prism grammar names. */
+const LANGUAGE_ALIASES: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  html: "markup",
+  xml: "markup",
+  py: "python",
+  rb: "ruby",
+  rs: "rust",
+  sh: "bash",
+  shell: "bash",
+  cs: "csharp",
+  yml: "yaml",
+};
+
+function resolveLang(raw: string): string {
+  const key = raw.toLowerCase();
+  return LANGUAGE_ALIASES[key] || key;
 }
+
+/** Small React component for the copy button inside code blocks. */
+function CopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <button
+      type="button"
+      className="copy-code-button"
+      onClick={handleCopy}
+    >
+      {copied ? (
+        "Copied!"
+      ) : (
+        <>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+          </svg>
+          Copy
+        </>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Sanitization schema — extends the default to allow `class` on `code` and
+ * `span` (needed for Prism token spans injected via `dangerouslySetInnerHTML`
+ * inside our custom `code` component).  Everything else (script, iframe,
+ * onerror, javascript: urls, etc.) is stripped by rehype-sanitize.
+ */
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    code: [...(defaultSchema.attributes?.code || []), "className"],
+    span: [...(defaultSchema.attributes?.span || []), "className"],
+  },
+};
 
 interface MarkdownRendererProps {
   content: string;
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
-  const [renderedContent, setRenderedContent] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
+  /**
+   * Custom `code` component for react-markdown.
+   *
+   * react-markdown renders fenced code blocks as `<pre><code className="language-xxx">`.
+   * When the `code` element is inside a `pre` (i.e. it's a block, not inline),
+   * we apply Prism.highlight() synchronously — no timeouts, no useEffect, no
+   * DOM queries.
+   */
+  const components = useMemo(
+    () => ({
+      code({
+        className,
+        children,
+        ...props
+      }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
+        const langMatch = /language-(\w+)/.exec(className || "");
+        const rawLang = langMatch?.[1] || "";
+        const lang = resolveLang(rawLang);
+        const codeString = String(children).replace(/\n$/, "");
 
-  // Initialize Prism.js when component mounts
-  useEffect(() => {
-    // Force Prism to be available globally
-    if (typeof window !== "undefined") {
-      window.Prism = Prism;
-    }
-  }, []);
-
-  // Handle copy functionality for code blocks
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const copyButtons =
-      containerRef.current.querySelectorAll(".copy-code-button");
-
-    // Create a function to handle copy
-    const handleCopy = (event) => {
-      const button = event.currentTarget;
-      const codeBlock = button.closest(".code-block-wrapper");
-      const codeElement = codeBlock?.querySelector("code");
-
-      if (codeElement) {
-        // Get the text content and decode HTML entities
-        const textToCopy = codeElement.textContent || "";
-
-        // Use the clipboard API to copy the text
-        navigator.clipboard
-          .writeText(textToCopy)
-          .then(() => {
-            // Show success state
-            const originalText = button.textContent;
-            button.textContent = "Copied!";
-            button.classList.add("copied");
-
-            // Reset after delay
-            setTimeout(() => {
-              button.textContent = originalText;
-              button.classList.remove("copied");
-            }, 2000);
-          })
-          .catch((err) => {
-            console.error("Failed to copy code: ", err);
-            button.textContent = "Failed!";
-            setTimeout(() => {
-              button.textContent = "Copy";
-            }, 2000);
-          });
-      }
-    };
-
-    // Add event listeners
-    copyButtons.forEach((button) => {
-      button.addEventListener("click", handleCopy);
-    });
-
-    // Clean up event listeners
-    return () => {
-      copyButtons.forEach((button) => {
-        button.removeEventListener("click", handleCopy);
-      });
-    };
-  }, [renderedContent]);
-
-  useEffect(() => {
-    // Initialize rendered content
-    let rendered = content;
-
-    // Code blocks with syntax highlighting and copy button
-    rendered = rendered.replace(
-      /```([a-z]*)\n([\s\S]*?)```/g,
-      (_, lang, code) => {
-        // Normalize line breaks and trim extra whitespace
-        const normalizedCode = code.replace(/\n\s*\n/g, "\n").trim();
-        
-        // Escape HTML to prevent rendering
-        const escapedCode = normalizedCode
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-
-        // Map some common language aliases to their Prism equivalents
-        const languageMap = {
-          js: "javascript",
-          ts: "typescript",
-          jsx: "jsx",
-          tsx: "tsx",
-          html: "markup",
-          xml: "markup",
-          py: "python",
-          rb: "ruby",
-          rs: "rust",
-          sh: "bash",
-          bash: "bash",
-          shell: "bash",
-          cs: "csharp",
-          go: "go",
-          yml: "yaml",
-          "": "text", // Empty string for unspecified language
-        };
-
-        // Get the correct language identifier or default to plain text
-        let language = languageMap[lang] || lang || "text";
-
-        // Safe languages that have been confirmed to work
-        const safeLanguages = [
-          "javascript",
-          "typescript",
-          "jsx",
-          "tsx",
-          "css",
-          "scss",
-          "markup",
-          "json",
-          "yaml",
-          "python",
-          "csharp",
-          "java",
-          "bash",
-          "go",
-          "rust",
-          "sql",
-          "c",
-          "cpp",
-          "markdown",
-        ];
-
-        // If the language isn't in our safe list, default to text
-        if (!safeLanguages.includes(language)) {
-          language = "text";
+        // Fenced code block with a Prism grammar → highlight synchronously
+        if (lang && Prism.languages[lang]) {
+          const highlighted = Prism.highlight(
+            codeString,
+            Prism.languages[lang],
+            lang
+          );
+          return (
+            <div className="code-block-wrapper" data-language={lang}>
+              <CopyButton code={codeString} />
+              <pre className={`language-${lang}`}>
+                <code
+                  className={`language-${lang}`}
+                  dangerouslySetInnerHTML={{ __html: highlighted }}
+                />
+              </pre>
+            </div>
+          );
         }
 
-        return `
-          <div class="code-block-wrapper relative group" data-language="${language}">
-            <button class="copy-code-button absolute top-2 right-2 bg-muted/80 hover:bg-muted text-foreground p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 z-10">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-              Copy
-            </button>
-            <pre class="language-${language} text-wrap"><code class="language-${language} wrap">${escapedCode}</code></pre>
+        // Fenced block without a known grammar → plain text block
+        if (rawLang || !className) {
+          const isBlock =
+            codeString.includes("\n") || (!className && rawLang !== "");
+          if (isBlock && !className) {
+            return (
+              <div className="code-block-wrapper" data-language="text">
+                <CopyButton code={codeString} />
+                <pre>
+                  <code>{codeString}</code>
+                </pre>
+              </div>
+            );
+          }
+        }
+
+        // Inline code
+        return (
+          <code
+            className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
+            {...props}
+          >
+            {children}
+          </code>
+        );
+      },
+
+      // Wrap pre to avoid double-wrapping when our code component already
+      // renders a <pre> inside a wrapper div.
+      pre({ children }: { children?: React.ReactNode }) {
+        // If the child is our code-block-wrapper div, render children directly
+        // to avoid <pre><div class="code-block-wrapper"><pre>...
+        return <>{children}</>;
+      },
+
+      a({
+        href,
+        children,
+        ...props
+      }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+        children?: React.ReactNode;
+      }) {
+        return (
+          <a
+            href={href}
+            className="text-[var(--accent-color)] hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+            {...props}
+          >
+            {children}
+          </a>
+        );
+      },
+
+      img({
+        src,
+        alt,
+        ...props
+      }: React.ImgHTMLAttributes<HTMLImageElement>) {
+        return (
+          <img
+            src={src}
+            alt={alt}
+            className="rounded-md max-w-full my-4"
+            {...props}
+          />
+        );
+      },
+
+      blockquote({ children }: { children?: React.ReactNode }) {
+        return (
+          <blockquote className="border-l-4 border-[var(--accent-color)]/40 pl-4 py-1 my-4 text-muted-foreground italic">
+            {children}
+          </blockquote>
+        );
+      },
+
+      h1({ children }: { children?: React.ReactNode }) {
+        return (
+          <h1 className="text-3xl font-bold my-4 text-foreground">
+            {children}
+          </h1>
+        );
+      },
+      h2({ children }: { children?: React.ReactNode }) {
+        return (
+          <h2 className="text-2xl font-bold my-3 text-foreground">
+            {children}
+          </h2>
+        );
+      },
+      h3({ children }: { children?: React.ReactNode }) {
+        return (
+          <h3 className="text-xl font-bold my-2 text-foreground">
+            {children}
+          </h3>
+        );
+      },
+      h4({ children }: { children?: React.ReactNode }) {
+        return (
+          <h4 className="text-lg font-bold my-2 text-foreground">
+            {children}
+          </h4>
+        );
+      },
+      h5({ children }: { children?: React.ReactNode }) {
+        return (
+          <h5 className="text-base font-bold my-2 text-foreground">
+            {children}
+          </h5>
+        );
+      },
+      h6({ children }: { children?: React.ReactNode }) {
+        return (
+          <h6 className="text-sm font-bold my-2 text-foreground">
+            {children}
+          </h6>
+        );
+      },
+
+      hr() {
+        return <hr className="my-6 border-t border-border" />;
+      },
+
+      ul({ children }: { children?: React.ReactNode }) {
+        return <ul className="my-4 ml-6 list-disc space-y-1">{children}</ul>;
+      },
+      ol({ children }: { children?: React.ReactNode }) {
+        return (
+          <ol className="my-4 ml-6 list-decimal space-y-1">{children}</ol>
+        );
+      },
+
+      p({ children }: { children?: React.ReactNode }) {
+        return (
+          <p className="my-4 text-foreground">{children}</p>
+        );
+      },
+
+      table({ children }: { children?: React.ReactNode }) {
+        return (
+          <div className="my-4 overflow-x-auto">
+            <table className="min-w-full border-collapse border border-border">
+              {children}
+            </table>
           </div>
-        `;
-      }
-    );
-
-    // Inline code
-    rendered = rendered.replace(
-      /`([^`]+)`/g,
-      '<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">$1</code>'
-    );
-
-    // Headings
-    rendered = rendered.replace(
-      /^# (.*$)/gm,
-      '<h1 class="text-3xl font-bold my-4 text-foreground dark:text-foreground">$1</h1>'
-    );
-    rendered = rendered.replace(
-      /^## (.*$)/gm,
-      '<h2 class="text-2xl font-bold my-3 text-foreground dark:text-foreground">$1</h2>'
-    );
-    rendered = rendered.replace(
-      /^### (.*$)/gm,
-      '<h3 class="text-xl font-bold my-2 text-foreground dark:text-foreground">$1</h3>'
-    );
-    rendered = rendered.replace(
-      /^#### (.*$)/gm,
-      '<h4 class="text-lg font-bold my-2 text-foreground dark:text-foreground">$1</h4>'
-    );
-    rendered = rendered.replace(
-      /^##### (.*$)/gm,
-      '<h5 class="text-base font-bold my-2 text-foreground dark:text-foreground">$1</h5>'
-    );
-    rendered = rendered.replace(
-      /^###### (.*$)/gm,
-      '<h6 class="text-sm font-bold my-2 text-foreground dark:text-foreground">$1</h6>'
-    );
-
-    // Bold text
-    rendered = rendered.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-    // Italic text
-    rendered = rendered.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-    // Links
-    rendered = rendered.replace(
-      /\[(.*?)\]\((.*?)\)/g,
-      '<a href="$2" class="text-[var(--accent-color)] hover:underline" target="_blank" rel="noopener noreferrer">$1</a>'
-    );
-
-    // Images
-    rendered = rendered.replace(
-      /!\[(.*?)\]\((.*?)\)/g,
-      '<img src="$2" alt="$1" class="rounded-md max-w-full my-4" />'
-    );
-
-    // Blockquotes
-    rendered = rendered.replace(
-      /^> (.*$)/gm,
-      '<blockquote class="border-l-4 border-[var(--accent-color)]/40 pl-4 py-1 my-4 text-muted-foreground italic">$1</blockquote>'
-    );
-
-    // Horizontal rule
-    rendered = rendered.replace(
-      /^---$/gm,
-      '<hr class="my-6 border-t border-border" />'
-    );
-
-    // Unordered lists
-    // Convert list items first
-    rendered = rendered.replace(
-      /^\* (.*)$/gm,
-      '<li class="ml-6 list-disc">$1</li>'
-    );
-    // Then wrap adjacent list items in <ul> tags
-    rendered = rendered.replace(
-      /(<li[^>]*>.*<\/li>)(\n<li[^>]*>.*<\/li>)+/g,
-      '<ul class="my-4 space-y-1">$&</ul>'
-    );
-
-    // Ordered lists
-    // Convert list items first
-    rendered = rendered.replace(
-      /^\d+\. (.*)$/gm,
-      '<li class="ml-6 list-decimal">$1</li>'
-    );
-    // Then wrap adjacent list items in <ol> tags
-    rendered = rendered.replace(
-      /(<li[^>]*>.*<\/li>)(\n<li[^>]*>.*<\/li>)+/g,
-      '<ol class="my-4 space-y-1">$&</ol>'
-    );
-
-    // Paragraphs (must be done last to avoid interfering with other elements)
-    rendered = rendered.replace(
-      /^([^<].*)\n$/gm,
-      '<p class="my-4 text-foreground dark:text-foreground">$1</p>'
-    );
-
-    // Fix any doubled wrapping
-    rendered = rendered.replace(
-      /<ul class="my-4 space-y-1">(<ul class="my-4 space-y-1">.*<\/ul>)<\/ul>/g,
-      "$1"
-    );
-    rendered = rendered.replace(
-      /<ol class="my-4 space-y-1">(<ol class="my-4 space-y-1">.*<\/ol>)<\/ol>/g,
-      "$1"
-    );
-
-    // Set the rendered content
-    setRenderedContent(rendered);
-  }, [content]);
-
-  // Apply Prism highlighting after content is rendered
-  useEffect(() => {
-    if (renderedContent && containerRef.current) {
-      try {
-        // Apply syntax highlighting
-        setTimeout(() => {
-          Prism.highlightAllUnder(containerRef.current);
-
-          // Handle long code blocks
-          const codeBlocks = containerRef.current.querySelectorAll(
-            ".code-block-wrapper"
-          );
-          codeBlocks.forEach((block) => {
-            const pre = block.querySelector("pre");
-            if (pre && pre.clientHeight > 400) {
-              block.classList.add("has-long-content");
-            }
-          });
-
-          // Ensure color syntax is applied by adding another class
-          const codeElements = containerRef.current.querySelectorAll(
-            'code[class*="language-"]'
-          );
-          codeElements.forEach((element) => {
-            element.classList.add("prism-highlighted");
-          });
-        }, 10);
-      } catch (error) {
-        console.error("Error applying syntax highlighting:", error);
-      }
-    }
-  }, [renderedContent]);
+        );
+      },
+      th({ children }: { children?: React.ReactNode }) {
+        return (
+          <th className="border border-border bg-muted px-4 py-2 text-left font-bold">
+            {children}
+          </th>
+        );
+      },
+      td({ children }: { children?: React.ReactNode }) {
+        return (
+          <td className="border border-border px-4 py-2">{children}</td>
+        );
+      },
+    }),
+    []
+  );
 
   return (
-    <div
-      ref={containerRef}
-      className="max-w-none text-foreground dark:text-foreground markdown-content"
-      dangerouslySetInnerHTML={{ __html: renderedContent }}
-    />
+    <div className="max-w-none text-foreground markdown-content">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
+        components={components}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }

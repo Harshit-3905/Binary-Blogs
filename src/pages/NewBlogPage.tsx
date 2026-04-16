@@ -39,7 +39,7 @@ export default function NewBlogPage() {
         slug,
         content: blogData.content,
         excerpt:
-          blogData.excerpt || blogData.content.substring(0, 150) + "...",
+          blogData.excerpt || blogData.content.slice(0, 150) + "...",
         coverImage: blogData.coverImage,
         tags: blogData.tags,
       });
