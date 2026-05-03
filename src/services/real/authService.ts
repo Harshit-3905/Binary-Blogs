@@ -7,32 +7,192 @@ import type {
   UpdateProfileRequest,
 } from "@/types/apiTypes";
 import type { User } from "@/types/userTypes";
-import { ApiError, apiClient } from "@/lib/apiClient";
+import { ID, Query } from "appwrite";
+import { account, databases, storage } from "@/lib/appwrite";
+import { appwriteConfig } from "@/lib/appwriteConfig";
+import {
+  type AppwriteAccount,
+  type AppwritePrefs,
+  toUserDocumentData,
+  toUserFromAccount,
+} from "./shared/userMapping";
 
-export const realAuthService: AuthService = {
-  login: (payload: LoginRequest) =>
-    apiClient.post<AuthResponse>("/auth/login", payload),
+function isUnauthenticated(err: unknown): boolean {
+  const e = err as { code?: number; type?: string };
+  return e?.code === 401 || e?.type === "general_unauthorized_scope";
+}
 
-  signup: (payload: SignupRequest) =>
-    apiClient.post<AuthResponse>("/auth/signup", payload),
+function isSessionAlreadyActive(err: unknown): boolean {
+  const e = err as { code?: number; type?: string; message?: string };
+  const message = (e?.message ?? "").toLowerCase();
+  return (
+    e?.type === "user_session_already_exists" ||
+    (e?.code === 409 && message.includes("session"))
+  );
+}
 
-  guestLogin: () => apiClient.post<AuthResponse>("/auth/guest"),
+function isDocumentPermissionIssue(err: unknown): boolean {
+  const e = err as { code?: number; type?: string; message?: string };
+  const message = (e?.message ?? "").toLowerCase();
+  if (e?.type === "general_unauthorized_scope") return true;
+  if (e?.type === "general_access_forbidden") return true;
+  if (e?.code === 401 || e?.code === 403) {
+    return message.includes("permission") || message.includes("scope");
+  }
+  return false;
+}
 
-  logout: () => apiClient.post<void>("/auth/logout"),
+async function uploadAvatar(file: File, userId: string): Promise<string> {
+  const uploaded = await storage.createFile({
+    bucketId: appwriteConfig.buckets.images,
+    fileId: ID.unique(),
+    file,
+    permissions: [
+      `read("any")`,
+      `update("user:${userId}")`,
+      `delete("user:${userId}")`,
+    ],
+  });
+
+  return storage
+    .getFileView({
+      bucketId: appwriteConfig.buckets.images,
+      fileId: uploaded.$id,
+    })
+    .toString();
+}
+
+async function upsertUserDocument(user: User): Promise<void> {
+  const existing = await databases.listDocuments({
+    databaseId: appwriteConfig.databaseId,
+    collectionId: appwriteConfig.collections.users,
+    queries: [Query.equal("accountId", [user.id]), Query.limit(1)],
+  });
+
+  const data = toUserDocumentData(user);
+
+  if (existing.documents.length > 0) {
+    await databases.updateDocument({
+      databaseId: appwriteConfig.databaseId,
+      collectionId: appwriteConfig.collections.users,
+      documentId: existing.documents[0].$id,
+      data,
+    });
+    return;
+  }
+
+  await databases.createDocument({
+    databaseId: appwriteConfig.databaseId,
+    collectionId: appwriteConfig.collections.users,
+    documentId: ID.unique(),
+    data,
+    permissions: [
+      `read("any")`,
+      `update("user:${user.id}")`,
+      `delete("user:${user.id}")`,
+    ],
+  });
+}
+
+async function getUserFromSession(): Promise<User> {
+  const me = (await account.get()) as AppwriteAccount;
+
+  let prefs: AppwritePrefs | undefined;
+  try {
+    prefs = (await account.getPrefs()) as AppwritePrefs;
+  } catch {
+    prefs = undefined;
+  }
+
+  const user = toUserFromAccount(me, prefs);
+  try {
+    await upsertUserDocument(user);
+  } catch (err) {
+    // Keep auth usable even when the profile collection's create/update
+    // permissions are not fully opened yet during staged rollout.
+    if (!isDocumentPermissionIssue(err)) throw err;
+  }
+  return user;
+}
+
+export const authService: AuthService = {
+  async login(payload: LoginRequest): Promise<AuthResponse> {
+    try {
+      await account.createEmailPasswordSession({
+        email: payload.email,
+        password: payload.password,
+      });
+    } catch (err) {
+      if (!isSessionAlreadyActive(err)) throw err;
+    }
+    return { user: await getUserFromSession() };
+  },
+
+  async signup(payload: SignupRequest): Promise<AuthResponse> {
+    await account.create({
+      userId: ID.unique(),
+      email: payload.email,
+      password: payload.password,
+      name: payload.name,
+    });
+    await account.createEmailPasswordSession({
+      email: payload.email,
+      password: payload.password,
+    });
+
+    if (payload.avatarFile) {
+      const me = await account.get();
+      const avatar = await uploadAvatar(payload.avatarFile, me.$id);
+      await account.updatePrefs({ prefs: { avatar } });
+    }
+
+    return { user: await getUserFromSession() };
+  },
+
+  async guestLogin(): Promise<AuthResponse> {
+    await account.createAnonymousSession();
+    return { user: await getUserFromSession() };
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await account.deleteSession({ sessionId: "current" });
+    } catch (err) {
+      if (!isUnauthenticated(err)) throw err;
+    }
+  },
 
   async getCurrentUser(): Promise<User | null> {
     try {
-      return await apiClient.get<User>("/auth/me");
+      return await getUserFromSession();
     } catch (err) {
-      // 401 is expected when there is no active session.
-      if (err instanceof ApiError && err.status === 401) return null;
+      if (isUnauthenticated(err)) return null;
       throw err;
     }
   },
 
-  updateProfile: (payload: UpdateProfileRequest) =>
-    apiClient.patch<User>("/auth/me", payload),
+  async updateProfile(payload: UpdateProfileRequest): Promise<User> {
+    if (payload.name) {
+      await account.updateName({ name: payload.name });
+    }
 
-  changePassword: (payload: ChangePasswordRequest) =>
-    apiClient.post<void>("/auth/change-password", payload),
+    const currentPrefs = (await account.getPrefs()) as AppwritePrefs;
+    const nextPrefs: AppwritePrefs = { ...currentPrefs };
+
+    if (payload.avatar !== undefined) nextPrefs.avatar = payload.avatar;
+    if (payload.bio !== undefined) nextPrefs.bio = payload.bio;
+    if (payload.socialLinks !== undefined) {
+      nextPrefs.socialLinks = payload.socialLinks;
+    }
+
+    await account.updatePrefs({ prefs: nextPrefs });
+    return getUserFromSession();
+  },
+
+  async changePassword(payload: ChangePasswordRequest): Promise<void> {
+    await account.updatePassword({
+      password: payload.newPassword,
+      oldPassword: payload.currentPassword,
+    });
+  },
 };

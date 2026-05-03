@@ -154,10 +154,11 @@ export default function BlogDetailPage() {
     const wasLiked = isLikedByUser(blog.id);
     // Optimistic: update local blog count so the UI reflects the change.
     setBlog((b) => (b ? { ...b, likes: b.likes + (wasLiked ? -1 : 1) } : b));
-    toggleLike(blog.id).catch(() => {
+    toggleLike(blog.id).catch((err: unknown) => {
       setBlog((b) => (b ? { ...b, likes: b.likes + (wasLiked ? 1 : -1) } : b));
       toast({
         title: "Failed to update like",
+        description: err instanceof Error ? err.message : "Please try again.",
         variant: "destructive",
       });
       return;
@@ -180,9 +181,10 @@ export default function BlogDetailPage() {
       return;
     }
     const wasBookmarked = isBookmarkedByUser(blog.id);
-    toggleBookmark(blog.id).catch(() =>
+    toggleBookmark(blog.id).catch((err: unknown) =>
       toast({
         title: "Failed to update bookmark",
+        description: err instanceof Error ? err.message : "Please try again.",
         variant: "destructive",
       })
     );
@@ -235,10 +237,10 @@ export default function BlogDetailPage() {
           description: "Your comment has been posted successfully.",
         });
       })
-      .catch(() =>
+      .catch((err: unknown) =>
         toast({
           title: "Failed to post comment",
-          description: "Please try again.",
+          description: err instanceof Error ? err.message : "Please try again.",
           variant: "destructive",
         })
       );

@@ -185,7 +185,7 @@ export function Footer() {
                 Made with <Heart className="h-4 w-4 text-red-500 inline mx-1" />{" "}
                 by{" "}
                 <Link
-                  to="https://harshitjoshi.me"
+                  to="https://harshitjoshi.dev"
                   target="_blank"
                   className="text-[var(--accent-color)] hover:underline"
                 >

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
-  const { login, signup, guestLogin } = useAuthStore();
+  const { isLoggedIn, isAuthReady, login, signup, guestLogin } = useAuthStore();
   const { toast } = useToast();
 
   const [loginForm, setLoginForm] = useState({
@@ -41,9 +41,15 @@ export default function AuthPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    avatarFile: null as File | null,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+    if (isLoggedIn) navigate("/");
+  }, [isAuthReady, isLoggedIn, navigate]);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginForm({
@@ -53,6 +59,14 @@ export default function AuthPage() {
   };
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === "avatarFile") {
+      setSignupForm({
+        ...signupForm,
+        avatarFile: e.target.files?.[0] ?? null,
+      });
+      return;
+    }
+
     setSignupForm({
       ...signupForm,
       [e.target.name]: e.target.value,
@@ -103,6 +117,7 @@ export default function AuthPage() {
         name: signupForm.name,
         email: signupForm.email,
         password: signupForm.password,
+        avatarFile: signupForm.avatarFile ?? undefined,
       });
 
       toast({
@@ -324,6 +339,22 @@ export default function AuthPage() {
                           className="pl-10 border-[var(--accent-color)]/30 focus:border-[var(--accent-color)] transition-colors"
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="signup-avatar"
+                        className="text-sm font-medium"
+                      >
+                        Avatar (optional)
+                      </Label>
+                      <Input
+                        id="signup-avatar"
+                        name="avatarFile"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSignupChange}
+                        className="border-[var(--accent-color)]/30 focus:border-[var(--accent-color)] transition-colors"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label
