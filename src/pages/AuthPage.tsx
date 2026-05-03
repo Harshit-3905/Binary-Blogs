@@ -140,12 +140,26 @@ export default function AuthPage() {
   };
 
   const handleGuestLogin = async () => {
-    await guestLogin();
-    toast({
-      title: "Guest login successful",
-      description: "You are now signed in as a guest user.",
-    });
-    navigate("/");
+    setIsSubmitting(true);
+    try {
+      await guestLogin();
+      toast({
+        title: "Guest login successful",
+        description: "You are now signed in as a guest user.",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Guest login error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -280,7 +294,7 @@ export default function AuthPage() {
                       onClick={handleGuestLogin}
                       disabled={isSubmitting}
                     >
-                      Continue as Guest
+                      {isSubmitting ? "Continuing as Guest..." : "Continue as Guest"}
                     </Button>
                   </CardFooter>
                 </form>
@@ -420,7 +434,7 @@ export default function AuthPage() {
                       onClick={handleGuestLogin}
                       disabled={isSubmitting}
                     >
-                      Continue as Guest
+                      {isSubmitting ? "Continuing as Guest..." : "Continue as Guest"}
                     </Button>
                   </CardFooter>
                 </form>

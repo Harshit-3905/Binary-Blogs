@@ -7,7 +7,7 @@ import type {
   UpdateProfileRequest,
 } from "@/types/apiTypes";
 import type { User } from "@/types/userTypes";
-import { ID, Query } from "appwrite";
+import { ID } from "appwrite";
 import { account, databases, storage } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwriteConfig";
 import {
@@ -16,6 +16,9 @@ import {
   toUserDocumentData,
   toUserFromAccount,
 } from "./shared/userMapping";
+
+const GUEST_EMAIL = "guest@example.com";
+const GUEST_PASSWORD = "12345678";
 
 function isUnauthenticated(err: unknown): boolean {
   const e = err as { code?: number; type?: string };
@@ -42,6 +45,12 @@ function isDocumentPermissionIssue(err: unknown): boolean {
   return false;
 }
 
+function isConflictError(err: unknown): boolean {
+  const e = err as { code?: number; type?: string; message?: string };
+  const message = (e?.message ?? "").toLowerCase();
+  return e?.code === 409 || e?.type === "document_already_exists" || message.includes("already exists");
+}
+
 async function uploadAvatar(file: File, userId: string): Promise<string> {
   const uploaded = await storage.createFile({
     bucketId: appwriteConfig.buckets.images,
@@ -63,35 +72,43 @@ async function uploadAvatar(file: File, userId: string): Promise<string> {
 }
 
 async function upsertUserDocument(user: User): Promise<void> {
-  const existing = await databases.listDocuments({
-    databaseId: appwriteConfig.databaseId,
-    collectionId: appwriteConfig.collections.users,
-    queries: [Query.equal("accountId", [user.id]), Query.limit(1)],
-  });
-
   const data = toUserDocumentData(user);
 
-  if (existing.documents.length > 0) {
+  try {
     await databases.updateDocument({
       databaseId: appwriteConfig.databaseId,
       collectionId: appwriteConfig.collections.users,
-      documentId: existing.documents[0].$id,
+      documentId: user.id,
       data,
     });
     return;
+  } catch (err) {
+    const e = err as { code?: number };
+    if (e?.code !== 404) throw err;
   }
 
-  await databases.createDocument({
-    databaseId: appwriteConfig.databaseId,
-    collectionId: appwriteConfig.collections.users,
-    documentId: ID.unique(),
-    data,
-    permissions: [
-      `read("any")`,
-      `update("user:${user.id}")`,
-      `delete("user:${user.id}")`,
-    ],
-  });
+  try {
+    await databases.createDocument({
+      databaseId: appwriteConfig.databaseId,
+      collectionId: appwriteConfig.collections.users,
+      documentId: user.id,
+      data,
+      permissions: [
+        `read("any")`,
+        `update("user:${user.id}")`,
+        `delete("user:${user.id}")`,
+      ],
+    });
+  } catch (err) {
+    // Handles duplicate create races (double click, strict mode, retries).
+    if (!isConflictError(err)) throw err;
+    await databases.updateDocument({
+      databaseId: appwriteConfig.databaseId,
+      collectionId: appwriteConfig.collections.users,
+      documentId: user.id,
+      data,
+    });
+  }
 }
 
 async function getUserFromSession(): Promise<User> {
@@ -150,7 +167,23 @@ export const authService: AuthService = {
   },
 
   async guestLogin(): Promise<AuthResponse> {
-    await account.createAnonymousSession();
+    try {
+      await account.createEmailPasswordSession({
+        email: GUEST_EMAIL,
+        password: GUEST_PASSWORD,
+      });
+    } catch (err) {
+      if (!isSessionAlreadyActive(err)) throw err;
+
+      const current = await account.get();
+      if ((current.email ?? "").toLowerCase() !== GUEST_EMAIL) {
+        await account.deleteSession({ sessionId: "current" });
+        await account.createEmailPasswordSession({
+          email: GUEST_EMAIL,
+          password: GUEST_PASSWORD,
+        });
+      }
+    }
     return { user: await getUserFromSession() };
   },
 

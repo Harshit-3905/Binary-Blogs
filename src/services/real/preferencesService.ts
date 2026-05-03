@@ -3,7 +3,7 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "@/types/preferencesTypes";
-import { Query, ID } from "appwrite";
+import { Query } from "appwrite";
 import { databases } from "@/lib/appwrite";
 import { appwriteConfig } from "@/lib/appwriteConfig";
 import { demoPreferences } from "@/data/demoPreferences";
@@ -29,6 +29,12 @@ type PreferencesDocument = {
 
 const DATABASE_ID = appwriteConfig.databaseId;
 const PREFERENCES_COLLECTION_ID = appwriteConfig.collections.preferences;
+
+function isConflictError(err: unknown): boolean {
+  const e = err as { code?: number; type?: string; message?: string };
+  const message = (e?.message ?? "").toLowerCase();
+  return e?.code === 409 || e?.type === "document_already_exists" || message.includes("already exists");
+}
 
 function mergePreferences(
   current: UserPreferences,
@@ -104,19 +110,26 @@ async function ensurePreferences(userId: string): Promise<PreferencesDocument> {
   const existing = await getPreferencesDocument(userId);
   if (existing) return existing;
 
-  const created = await databases.createDocument({
-    databaseId: DATABASE_ID,
-    collectionId: PREFERENCES_COLLECTION_ID,
-    documentId: ID.unique(),
-    data: toStorageData(userId, demoPreferences),
-    permissions: [
-      `read("user:${userId}")`,
-      `update("user:${userId}")`,
-      `delete("user:${userId}")`,
-    ],
-  });
+  try {
+    const created = await databases.createDocument({
+      databaseId: DATABASE_ID,
+      collectionId: PREFERENCES_COLLECTION_ID,
+      documentId: userId,
+      data: toStorageData(userId, demoPreferences),
+      permissions: [
+        `read("user:${userId}")`,
+        `update("user:${userId}")`,
+        `delete("user:${userId}")`,
+      ],
+    });
 
-  return created as unknown as PreferencesDocument;
+    return created as unknown as PreferencesDocument;
+  } catch (err) {
+    if (!isConflictError(err)) throw err;
+    const retry = await getPreferencesDocument(userId);
+    if (!retry) throw err;
+    return retry;
+  }
 }
 
 export const preferencesService: PreferencesService = {

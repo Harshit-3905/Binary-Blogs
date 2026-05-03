@@ -1,32 +1,9 @@
-import { useState, useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import Prism from "prismjs";
 import "./prism-theme.css";
-import "prismjs/components/prism-markup";
-import "prismjs/components/prism-css";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-jsx";
-import "prismjs/components/prism-typescript";
-import "prismjs/components/prism-tsx";
-import "prismjs/components/prism-scss";
-import "prismjs/components/prism-sass";
-import "prismjs/components/prism-less";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-yaml";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-java";
-import "prismjs/components/prism-c";
-import "prismjs/components/prism-cpp";
-import "prismjs/components/prism-csharp";
-import "prismjs/components/prism-go";
-import "prismjs/components/prism-rust";
-import "prismjs/components/prism-bash";
-import "prismjs/components/prism-sql";
-import "prismjs/components/prism-docker";
-import "prismjs/components/prism-git";
 import "./markdown-styles.css";
 
 /** Map common aliases to Prism grammar names. */
@@ -47,6 +24,55 @@ const LANGUAGE_ALIASES: Record<string, string> = {
 function resolveLang(raw: string): string {
   const key = raw.toLowerCase();
   return LANGUAGE_ALIASES[key] || key;
+}
+
+const languageLoaders: Record<string, () => Promise<unknown>> = {
+  markup: () => import("prismjs/components/prism-markup"),
+  css: () => import("prismjs/components/prism-css"),
+  javascript: () => import("prismjs/components/prism-javascript"),
+  jsx: () => import("prismjs/components/prism-jsx"),
+  typescript: () => import("prismjs/components/prism-typescript"),
+  tsx: () => import("prismjs/components/prism-tsx"),
+  scss: () => import("prismjs/components/prism-scss"),
+  sass: () => import("prismjs/components/prism-sass"),
+  less: () => import("prismjs/components/prism-less"),
+  json: () => import("prismjs/components/prism-json"),
+  markdown: () => import("prismjs/components/prism-markdown"),
+  yaml: () => import("prismjs/components/prism-yaml"),
+  python: () => import("prismjs/components/prism-python"),
+  java: () => import("prismjs/components/prism-java"),
+  c: () => import("prismjs/components/prism-c"),
+  cpp: () => import("prismjs/components/prism-cpp"),
+  csharp: () => import("prismjs/components/prism-csharp"),
+  go: () => import("prismjs/components/prism-go"),
+  rust: () => import("prismjs/components/prism-rust"),
+  bash: () => import("prismjs/components/prism-bash"),
+  sql: () => import("prismjs/components/prism-sql"),
+  docker: () => import("prismjs/components/prism-docker"),
+  git: () => import("prismjs/components/prism-git"),
+};
+
+const languageLoadingPromises = new Map<string, Promise<boolean>>();
+
+function ensureLanguageLoaded(lang: string): Promise<boolean> {
+  const normalized = resolveLang(lang);
+  if (Prism.languages[normalized]) return Promise.resolve(true);
+
+  const loader = languageLoaders[normalized];
+  if (!loader) return Promise.resolve(false);
+
+  const existing = languageLoadingPromises.get(normalized);
+  if (existing) return existing;
+
+  const loadPromise = loader()
+    .then(() => Boolean(Prism.languages[normalized]))
+    .catch(() => false)
+    .finally(() => {
+      languageLoadingPromises.delete(normalized);
+    });
+
+  languageLoadingPromises.set(normalized, loadPromise);
+  return loadPromise;
 }
 
 /** Small React component for the copy button inside code blocks. */
@@ -111,6 +137,9 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+  const requestedLanguagesRef = useRef<Set<string>>(new Set());
+  const [, setLanguageVersion] = useState(0);
+
   /**
    * Custom `code` component for react-markdown.
    *
@@ -130,6 +159,17 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         const rawLang = langMatch?.[1] || "";
         const lang = resolveLang(rawLang);
         const codeString = String(children).replace(/\n$/, "");
+
+        if (lang && !Prism.languages[lang]) {
+          if (!requestedLanguagesRef.current.has(lang)) {
+            requestedLanguagesRef.current.add(lang);
+            void ensureLanguageLoaded(lang).then((loaded) => {
+              if (loaded) {
+                setLanguageVersion((v) => v + 1);
+              }
+            });
+          }
+        }
 
         // Fenced code block with a Prism grammar → highlight synchronously
         if (lang && Prism.languages[lang]) {
@@ -151,20 +191,18 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           );
         }
 
-        // Fenced block without a known grammar → plain text block
-        if (rawLang || !className) {
-          const isBlock =
-            codeString.includes("\n") || (!className && rawLang !== "");
-          if (isBlock && !className) {
-            return (
-              <div className="code-block-wrapper" data-language="text">
-                <CopyButton code={codeString} />
-                <pre>
-                  <code>{codeString}</code>
-                </pre>
-              </div>
-            );
-          }
+        // Fenced block without a loaded grammar yet → plain text block
+        if (rawLang) {
+          return (
+            <div className="code-block-wrapper" data-language={lang || "text"}>
+              <CopyButton code={codeString} />
+              <pre className={lang ? `language-${lang}` : undefined}>
+                <code className={lang ? `language-${lang}` : undefined}>
+                  {codeString}
+                </code>
+              </pre>
+            </div>
+          );
         }
 
         // Inline code

@@ -1,9 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useThemeStore } from "@/store/useThemeStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePreferencesStore } from "@/store/usePreferencesStore";
@@ -11,21 +10,42 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
 
-// Pages
-import HomePage from "./pages/HomePage";
-import BlogsPage from "./pages/BlogsPage";
-import BlogDetailPage from "./pages/BlogDetailPage";
-import NewBlogPage from "./pages/NewBlogPage";
-import EditBlogPage from "./pages/EditBlogPage";
-import BookmarksPage from "./pages/BookmarksPage";
-import DashboardPage from "./pages/DashboardPage";
-import AuthPage from "./pages/AuthPage";
-import SettingsPage from "./pages/SettingsPage";
-import ProfilePage from "./pages/ProfilePage";
-import NotFoundPage from "./pages/NotFoundPage";
-import { Analytics } from "@vercel/analytics/react"
+const HomePage = lazy(() => import("./pages/HomePage"));
+const BlogsPage = lazy(() => import("./pages/BlogsPage"));
+const BlogDetailPage = lazy(() => import("./pages/BlogDetailPage"));
+const NewBlogPage = lazy(() => import("./pages/NewBlogPage"));
+const EditBlogPage = lazy(() => import("./pages/EditBlogPage"));
+const BookmarksPage = lazy(() => import("./pages/BookmarksPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
-const queryClient = new QueryClient();
+function AppLoadingScreen({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div
+          className="h-12 w-12 rounded-full border-4 border-[var(--accent-color)]/25 border-t-[var(--accent-color)] animate-spin"
+          aria-hidden="true"
+        />
+        <div>
+          <p className="text-2xl font-bold">Binary Blogs</p>
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RequireAuth({ isLoggedIn }: { isLoggedIn: boolean }) {
+  return isLoggedIn ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+function RequireGuest({ isLoggedIn }: { isLoggedIn: boolean }) {
+  return isLoggedIn ? <Navigate to="/" replace /> : <Outlet />;
+}
 
 const App = () => {
   const { theme, selectedColorName, accentColor, fontFamily, setColorScheme, setFontFamily } = useThemeStore();
@@ -82,54 +102,47 @@ const App = () => {
   }, [isBootstrapping, isLoggedIn, loadPreferences, resetPreferences]);
 
   return (
-    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         {isBootstrapping ? (
-          <div className="min-h-screen flex items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div
-                className="h-12 w-12 rounded-full border-4 border-[var(--accent-color)]/25 border-t-[var(--accent-color)] animate-spin"
-                aria-hidden="true"
-              />
-              <div>
-                <p className="text-2xl font-bold">Binary Blogs</p>
-                <p className="text-sm text-muted-foreground">
-                  Loading your workspace...
-                </p>
-              </div>
-            </div>
-          </div>
+          <AppLoadingScreen message="Loading your workspace..." />
         ) : (
           <BrowserRouter>
             <ScrollToTop />
             <div className="flex flex-col min-h-screen">
               <Header />
               <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/blogs" element={<BlogsPage />} />
-                  <Route path="/blog/:slug" element={<BlogDetailPage />} />
-                  <Route path="/new-blog" element={<NewBlogPage />} />
-                  <Route path="/edit-blog/:id" element={<EditBlogPage />} />
-                  <Route path="/bookmarks" element={<BookmarksPage />} />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/login" element={<AuthPage />} />
-                  <Route path="/signup" element={<AuthPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/profile/:id" element={<ProfilePage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
+                <Suspense fallback={<AppLoadingScreen message="Loading page..." />}>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/blogs" element={<BlogsPage />} />
+                    <Route path="/blog/:slug" element={<BlogDetailPage />} />
+                    <Route path="/profile/:id" element={<ProfilePage />} />
+
+                    <Route element={<RequireGuest isLoggedIn={isLoggedIn} />}>
+                      <Route path="/login" element={<AuthPage />} />
+                      <Route path="/signup" element={<AuthPage />} />
+                    </Route>
+
+                    <Route element={<RequireAuth isLoggedIn={isLoggedIn} />}>
+                      <Route path="/new-blog" element={<NewBlogPage />} />
+                      <Route path="/edit-blog/:id" element={<EditBlogPage />} />
+                      <Route path="/bookmarks" element={<BookmarksPage />} />
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                    </Route>
+
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
               </main>
               <Footer />
-              <Analytics />
             </div>
           </BrowserRouter>
         )}
       </TooltipProvider>
-    </QueryClientProvider>
   );
 };
 
